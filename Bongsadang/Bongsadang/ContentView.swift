@@ -45,6 +45,7 @@ struct VolunteerDetailView: View {
                     Spacer()
                         .frame(height: 100)
                 }
+                .transition(.move(edge: .bottom))
             }
             
             // 하단 탭 바
@@ -58,6 +59,7 @@ struct VolunteerDetailView: View {
             }
         }
         .ignoresSafeArea(edges: .bottom)
+        .animation(.easeInOut, value: selectedLocation)
     }
     
     // MARK: - Components
@@ -347,7 +349,13 @@ struct VolunteerDetailView: View {
 
 // MARK: - Supporting Types
 
-struct VolunteerLocation: Identifiable {
+extension CLLocationCoordinate2D: Equatable {
+    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
+        lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
+    }
+}
+
+struct VolunteerLocation: Identifiable, Equatable {
     let id: Int
     let coordinate: CLLocationCoordinate2D
 }
