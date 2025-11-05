@@ -2,7 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>봉사당 지도에서 현재 위치를 표시하기 위해 위치 권한이 필요합니다.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>봉사당 지도에서 현재 위치를 표시하기 위해 위치 권한이 필요합니다.</string>
 	<key>MBXAccessToken</key>
-	<string>pk.eyJ1IjoiYm9uZ3NhZGFuZyIsImEiOiJjbWhseGtwMmQwNzZkMmlzamFsdjBjZDAxIn0.5aIJJjz8ct1f5HCSRlBN7Q</string>
+	<string>sk.eyJ1IjoiYm9uZ3NhZGFuZyIsImEiOiJjbWhtMjZ4a2oyMGhyMm1zNzdudGhvbzhmIn0.g9zLfdJDDgs52jOs6jmZRA</string>
 </dict>
 </plist>
