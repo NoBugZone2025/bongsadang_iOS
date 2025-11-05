@@ -1,44 +1,81 @@
 import SwiftUI
-import
+import MapboxMaps
+import CoreLocation
+import Combine
+
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    private let locationManager = CLLocationManager()
+    @Published var userLocation: CLLocationCoordinate2D?
+    
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        userLocation = location.coordinate
+    }
+}
 
 struct MapboxView: UIViewRepresentable {
-    private let token = "pk.eyJ1IjoiYm9uZ3NhZGFuZyIsImEiOiJjbWhseGtwMmQwNzZkMmlzamFsdjBjZDAxIn0.5aIJJjz8ct1f5HCSRlBN7Q"
+    private let token = "sk.eyJ1IjoiYm9uZ3NhZGFuZyIsImEiOiJjbWhtMjZ4a2oyMGhyMm1zNzdudGhvbzhmIn0.g9zLfdJDDgs52jOs6jmZRA"
     private let styleURL = "mapbox://styles/bongsadang/cmhlxqa1d00k101si5frs0lkb"
+    @ObservedObject var locationManager: LocationManager
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator {
+        var hasMovedToUserLocation = false
+    }
 
     func makeUIView(context: Context) -> MapView {
-        let resourceOptions = ResourceOptions(accessToken: token)
-        let mapInitOptions = MapInitOptions(resourceOptions: resourceOptions,
-                                            styleURI: StyleURI(url: styleURL))
-
-        let mapView = MapView(frame: .zero, mapInitOptions: mapInitOptions)
+        let mapView = MapView(frame: .zero)
         
-        // 초기 카메라 위치 (서울 시청 근처)
-        let camera = CameraOptions(center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780),
-                                   zoom: 11)
-        mapView.mapboxMap.setCamera(to: camera)
+        mapView.mapboxMap.loadStyleURI(StyleURI(rawValue: styleURL) ?? .streets)
+        
+        let puckConfiguration = Puck2DConfiguration.makeDefault(showBearing: true)
+        mapView.location.options.puckType = .puck2D(puckConfiguration)
         
         return mapView
     }
 
     func updateUIView(_ uiView: MapView, context: Context) {
-        // SwiftUI에서 상태가 바뀔 때 지도에 변화 줄 수 있음
+        if let userLocation = locationManager.userLocation, !context.coordinator.hasMovedToUserLocation {
+            let camera = CameraOptions(center: userLocation, zoom: 14)
+            uiView.mapboxMap.setCamera(to: camera)
+            context.coordinator.hasMovedToUserLocation = true
+        }
     }
 }
 
 struct ContentView: View {
+    @StateObject private var locationManager = LocationManager()
+    
     var body: some View {
         ZStack {
-            MapboxView()
+            MapboxView(locationManager: locationManager)
                 .ignoresSafeArea()
             
             VStack {
                 Spacer()
-                Text("봉사당 지도")
-                    .font(.headline)
-                    .padding(8)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(12)
-                    .padding(.bottom, 30)
+                HStack {
+                    Text("봉사당 지도")
+                        .font(.headline)
+                    if locationManager.userLocation != nil {
+                        Image(systemName: "location.fill")
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding(10)
+                .background(.ultraThinMaterial)
+                .cornerRadius(12)
+                .padding(.bottom, 30)
             }
         }
     }
