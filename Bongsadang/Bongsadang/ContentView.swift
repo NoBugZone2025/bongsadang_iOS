@@ -15,6 +15,7 @@ struct VolunteerDetailView: View {
     @State private var isParticipating: Bool = false
     @State private var elapsedTime: TimeInterval = 0
     @State private var timer: Timer?
+    @State private var showRankingModal: Bool = false
     
     let startTime: Date = Date()
     
@@ -59,6 +60,16 @@ struct VolunteerDetailView: View {
         ]
     }
     
+    let rankings: [RankingUser] = [
+        RankingUser(rank: 1, username: "User1", location: "서울시 은평구", points: "1558P", title: "칭호", rankColor: .gold),
+        RankingUser(rank: 2, username: "User2", location: "서울시 은평구", points: "1557P", title: "칭호", rankColor: .silver),
+        RankingUser(rank: 3, username: "User3", location: "서울시 은평구", points: "1556P", title: "칭호", rankColor: .bronze),
+        RankingUser(rank: 4, username: "User4", location: "서울시 은평구", points: "1555P", title: "칭호", rankColor: .black),
+        RankingUser(rank: 5, username: "User5", location: "서울시 은평구", points: "334P", title: "칭호", rankColor: .black),
+        RankingUser(rank: 6, username: "User41", location: "서울시 은평구", points: "228P", title: "칭호", rankColor: .black),
+        RankingUser(rank: 7, username: "User4", location: "서울시 은평구", points: "1555P", title: "칭호", rankColor: .black)
+    ]
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             mapViewBackground
@@ -97,6 +108,29 @@ struct VolunteerDetailView: View {
                 }
                 .transition(.move(edge: .bottom))
             }
+            
+            // Ranking Bottom Sheet
+            if showRankingModal {
+                VStack(spacing: 0) {
+                    Spacer()
+                        .frame(height: 58 + 44 + 9 + 9) // topNav + searchBar + spacing
+                    
+                    rankingBottomSheet
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 97) // 84 (tabBar) + 13 (spacing above tabBar)
+                }
+                .background(
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation {
+                                showRankingModal = false
+                            }
+                        }
+                )
+                .transition(.opacity)
+            }
+            
             bottomTabBar
             VStack {
                 Spacer()
@@ -107,6 +141,7 @@ struct VolunteerDetailView: View {
         .ignoresSafeArea(edges: .bottom)
         .animation(.easeInOut, value: selectedLocation)
         .animation(.easeInOut, value: isParticipating)
+        .animation(.easeInOut, value: showRankingModal)
         .onAppear {
             centerMapOnUserLocation()
         }
@@ -500,7 +535,11 @@ struct VolunteerDetailView: View {
             tabBarItem(icon: "bag", isSelected: false)
             Spacer()
                 .frame(width: 80)
-            tabBarItem(icon: "chart.bar.fill", isSelected: false)
+            tabBarItem(icon: "chart.bar.fill", isSelected: showRankingModal, action: {
+                withAnimation {
+                    showRankingModal.toggle()
+                }
+            })
             tabBarItem(icon: "person", isSelected: false)
         }
         .frame(height: 84)
@@ -513,8 +552,10 @@ struct VolunteerDetailView: View {
         )
     }
 
-    private func tabBarItem(icon: String, isSelected: Bool) -> some View {
-        Button(action: {}) {
+    private func tabBarItem(icon: String, isSelected: Bool, action: (() -> Void)? = nil) -> some View {
+        Button(action: {
+            action?()
+        }) {
             VStack(spacing: 0) {
                 Image(systemName: icon)
                     .font(.system(size: 28))
@@ -525,6 +566,82 @@ struct VolunteerDetailView: View {
             .frame(height: 60)
         }
     }
+    
+    // MARK: - Ranking Bottom Sheet
+    private var rankingBottomSheet: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                ForEach(rankings) { user in
+                    rankingCard(user: user)
+                }
+            }
+            .padding(.top, 10)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 32)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
+        )
+    }
+    
+    private func rankingCard(user: RankingUser) -> some View {
+        HStack(spacing: 12) {
+            // Rank Number
+            Text("\(user.rank).")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(user.rankColor)
+                .frame(width: 40, alignment: .leading)
+            
+            // Profile Image
+            Circle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 50, height: 50)
+                .overlay(
+                    Image(systemName: "person.fill")
+                        .foregroundColor(.white)
+                )
+            
+            // User Info
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text(user.username)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(hex: "8B4513"))
+                    
+                    Text(user.title)
+                        .font(.system(size: 13, weight: .light))
+                        .foregroundColor(Color(hex: "8B4513"))
+                }
+                
+                Text(user.location)
+                    .font(.system(size: 13, weight: .light))
+                    .foregroundColor(Color(hex: "8B4513"))
+            }
+            
+            Spacer()
+            
+            // Points
+            Text(user.points)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(hex: "8B4513"))
+        }
+        .padding(.vertical, 15)
+        .padding(.horizontal, 12)
+        .background(Color(hex: "FFF7F0"))
+        .cornerRadius(24)
+        .padding(.horizontal, 10)
+    }
+}
+
+// MARK: - Models
+struct RankingUser: Identifiable {
+    let id = UUID()
+    let rank: Int
+    let username: String
+    let location: String
+    let points: String
+    let title: String
+    let rankColor: Color
 }
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
@@ -569,17 +686,21 @@ struct VolunteerLocation: Identifiable, Equatable {
 }
 
 extension Color {
+    static let gold = Color(hex: "FFCE1B")
+    static let silver = Color(hex: "C5C5C5")
+    static let bronze = Color(hex: "B25F00")
+    
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
         Scanner(string: hex).scanHexInt64(&int)
         let a, r, g, b: UInt64
         switch hex.count {
-        case 3: // RGB (12-bit)
+        case 3:
             (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
+        case 6:
             (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
+        case 8:
             (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
         default:
             (a, r, g, b) = (1, 1, 1, 0)
