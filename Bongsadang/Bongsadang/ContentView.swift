@@ -16,6 +16,7 @@ struct VolunteerDetailView: View {
     @State private var elapsedTime: TimeInterval = 0
     @State private var timer: Timer?
     @State private var showRankingModal: Bool = false
+    @State private var showMyPageModal: Bool = false
     
     let startTime: Date = Date()
     
@@ -131,6 +132,28 @@ struct VolunteerDetailView: View {
                 .transition(.opacity)
             }
             
+            // My Page Bottom Sheet
+            if showMyPageModal {
+                VStack(spacing: 0) {
+                    Spacer()
+                        .frame(height: 58 + 44 + 9 + 9) // topNav + searchBar + spacing
+                    
+                    myPageBottomSheet
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 97) // 84 (tabBar) + 13 (spacing above tabBar)
+                }
+                .background(
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation {
+                                showMyPageModal = false
+                            }
+                        }
+                )
+                .transition(.opacity)
+            }
+            
             bottomTabBar
             VStack {
                 Spacer()
@@ -142,6 +165,7 @@ struct VolunteerDetailView: View {
         .animation(.easeInOut, value: selectedLocation)
         .animation(.easeInOut, value: isParticipating)
         .animation(.easeInOut, value: showRankingModal)
+        .animation(.easeInOut, value: showMyPageModal)
         .onAppear {
             centerMapOnUserLocation()
         }
@@ -540,7 +564,11 @@ struct VolunteerDetailView: View {
                     showRankingModal.toggle()
                 }
             })
-            tabBarItem(icon: "person", isSelected: false)
+            tabBarItem(icon: "person", isSelected: showMyPageModal, action: {
+                withAnimation {
+                    showMyPageModal.toggle()
+                }
+            })
         }
         .frame(height: 84)
         .background(
@@ -630,6 +658,224 @@ struct VolunteerDetailView: View {
         .background(Color(hex: "FFF7F0"))
         .cornerRadius(24)
         .padding(.horizontal, 10)
+    }
+    
+    // MARK: - My Page Bottom Sheet
+    private var myPageBottomSheet: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                // User Profile Card
+                myProfileCard
+                
+                // Friends Management Card
+                friendsManagementCard
+                
+                // My Volunteer Records Card
+                myVolunteerRecordsCard
+            }
+            .padding(.top, 10)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 32)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
+        )
+    }
+    
+    private var myProfileCard: some View {
+        HStack(spacing: 12) {
+            // Rank Number
+            Text("22.")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(.black)
+                .frame(width: 40, alignment: .leading)
+            
+            // Profile Image
+            Circle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 50, height: 50)
+                .overlay(
+                    Image(systemName: "person.fill")
+                        .foregroundColor(.white)
+                )
+            
+            // User Info
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    Text("UserK")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(hex: "8B4513"))
+                    
+                    Text("칭호")
+                        .font(.system(size: 13, weight: .light))
+                        .foregroundColor(Color(hex: "8B4513"))
+                }
+                
+                Text("서울시 은평구")
+                    .font(.system(size: 13, weight: .light))
+                    .foregroundColor(Color(hex: "8B4513"))
+            }
+            
+            Spacer()
+            
+            // Points
+            Text("223P")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(hex: "8B4513"))
+        }
+        .padding(.vertical, 15)
+        .padding(.horizontal, 12)
+        .background(Color(hex: "FFF7F0"))
+        .cornerRadius(24)
+        .padding(.horizontal, 10)
+    }
+    
+    private var friendsManagementCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("친구 관리")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(hex: "8B4513"))
+                .padding(.leading, 19)
+            
+            HStack(spacing: 21) {
+                ForEach(0..<5) { index in
+                    VStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(width: 50, height: 50)
+                            .overlay(
+                                Image(systemName: "person.fill")
+                                    .foregroundColor(.white)
+                            )
+                        
+                        Text("User1")
+                            .font(.system(size: 13, weight: .light))
+                            .foregroundColor(Color(hex: "8B4513"))
+                    }
+                }
+            }
+            .padding(.horizontal, 19)
+        }
+        .padding(.vertical, 15)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(hex: "FFF7F0"))
+        .cornerRadius(24)
+        .padding(.horizontal, 10)
+    }
+    
+    private var myVolunteerRecordsCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("나의 봉사 기록")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(hex: "8B4513"))
+                .padding(.horizontal, 19)
+            
+            VStack(spacing: 12) {
+                volunteerRecordItem(
+                    title: "독거노인 도시락 배달",
+                    description: "따뜻한 마음으로 어르신들께\n도시락을 전달해요",
+                    date: "2025.11.15",
+                    organizer: "by 김봉사",
+                    participants: "3/5",
+                    location: "서울시 강남구",
+                    time: "14:00-16:00",
+                    distance: "1.2km"
+                )
+                
+                volunteerRecordItem(
+                    title: "바닷가 쓰레기 줍기",
+                    description: "줍깅",
+                    date: "2025.12.02",
+                    organizer: "by 이봉창",
+                    participants: "2/2",
+                    location: "부산시 수영구",
+                    time: "11:00-13:00",
+                    distance: "334km"
+                )
+            }
+            .padding(.horizontal, 19)
+        }
+        .padding(.vertical, 15)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(hex: "FFF7F0"))
+        .cornerRadius(24)
+        .padding(.horizontal, 10)
+    }
+    
+    private func volunteerRecordItem(
+        title: String,
+        description: String,
+        date: String,
+        organizer: String,
+        participants: String,
+        location: String,
+        time: String,
+        distance: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color(hex: "8B4513"))
+                
+                Spacer()
+                
+                Text(date)
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(hex: "A0522D"))
+            }
+            
+            HStack(alignment: .top) {
+                Text(description)
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(hex: "A0522D"))
+                    .lineSpacing(3)
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(organizer)
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(hex: "A0522D"))
+                    
+                    Text(participants)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color(hex: "D2691E"))
+                }
+            }
+            
+            HStack(spacing: 10) {
+                HStack(spacing: 4) {
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "8B4513"))
+                    Text(location)
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(hex: "A0522D"))
+                }
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "8B4513"))
+                    Text(time)
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(hex: "A0522D"))
+                }
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(hex: "8B4513"))
+                    Text(distance)
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(hex: "A0522D"))
+                }
+            }
+        }
+        .padding(17)
+        .background(Color.white)
+        .cornerRadius(22)
     }
 }
 
