@@ -8,6 +8,7 @@ struct VolunteerDetailView: View {
         center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780),
         span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
+    @State private var selectedLocation: VolunteerLocation?
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -15,6 +16,7 @@ struct VolunteerDetailView: View {
             mapViewBackground
                 .onTapGesture {
                     isSearchFocused = false
+                    selectedLocation = nil
                 }
             
             // 상단 컨텐츠 레이어
@@ -29,18 +31,20 @@ struct VolunteerDetailView: View {
             }
             
             // 하단 카드와 버튼들
-            VStack(spacing: 0) {
-                Spacer()
-                
-                // 봉사 활동 상세 카드
-                volunteerDetailCard
-                    .padding(.horizontal, 10)
-                    .onTapGesture {
-                        isSearchFocused = false
-                    }
-                
-                Spacer()
-                    .frame(height: 100)
+            if selectedLocation != nil {
+                VStack(spacing: 0) {
+                    Spacer()
+                    
+                    // 봉사 활동 상세 카드
+                    volunteerDetailCard
+                        .padding(.horizontal, 10)
+                        .onTapGesture {
+                            isSearchFocused = false
+                        }
+                    
+                    Spacer()
+                        .frame(height: 100)
+                }
             }
             
             // 하단 탭 바
@@ -61,7 +65,9 @@ struct VolunteerDetailView: View {
     private var mapViewBackground: some View {
         Map(coordinateRegion: $region, annotationItems: volunteerLocations) { location in
             MapAnnotation(coordinate: location.coordinate) {
-                mapMarker(number: location.id)
+                Button(action: { selectedLocation = location }) {
+                    mapMarker(number: location.id)
+                }
             }
         }
         .ignoresSafeArea()
@@ -106,15 +112,21 @@ struct VolunteerDetailView: View {
                 .foregroundColor(.gray)
                 .padding(.leading, 20)
             
-            TextField("원하는 지역을 입력하세요", text: $searchText)
-                .font(.system(size: 14))
-                .foregroundColor(.primary)
-                .focused($isSearchFocused)
-                .submitLabel(.search)
-                .onSubmit {
-                    isSearchFocused = false
-                }
-            
+                    ZStack(alignment: .leading) {
+                        if searchText.isEmpty {
+                            Text("원하는 지역을 입력하세요")
+                                .font(.system(size: 14))
+                                .foregroundColor(Color(hex: "828282"))
+                        }
+                        TextField("", text: $searchText)
+                            .font(.system(size: 14))
+                            .foregroundColor(.primary)
+                            .focused($isSearchFocused)
+                            .submitLabel(.search)
+                            .onSubmit {
+                                isSearchFocused = false
+                            }
+                    }            
             if !searchText.isEmpty {
                 Button(action: {
                     searchText = ""
@@ -243,7 +255,7 @@ struct VolunteerDetailView: View {
             
             // 액션 버튼들
             HStack(spacing: 16) {
-                Button(action: {}) {
+                Button(action: { selectedLocation = nil }) {
                     Text("돌아가기")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.white)
