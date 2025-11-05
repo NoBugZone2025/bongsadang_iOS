@@ -1,5 +1,9 @@
 import SwiftUI
 import MapKit
+import CoreLocation
+import Combine
+
+// MARK: - Main View
 
 struct VolunteerDetailView: View {
     @State private var searchText: String = ""
@@ -9,6 +13,9 @@ struct VolunteerDetailView: View {
         span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
     @State private var selectedLocation: VolunteerLocation?
+    
+    // 위치 매니저 추가
+    @StateObject private var locationManager = LocationManager()
     
     // 봉사 참여 상태 및 타이머
     @State private var isParticipating: Bool = false
@@ -107,8 +114,31 @@ struct VolunteerDetailView: View {
         .ignoresSafeArea(edges: .bottom)
         .animation(.easeInOut, value: selectedLocation)
         .animation(.easeInOut, value: isParticipating)
+        .onAppear {
+            // 앱이 시작될 때 사용자 위치로 지도 중앙 이동
+            centerMapOnUserLocation()
+        }
+        .onChange(of: locationManager.userLocation) { newLocation in
+            // 위치가 업데이트되면 지도 중앙으로 이동
+            if let location = newLocation {
+                withAnimation {
+                    region.center = location.coordinate
+                }
+            }
+        }
         .onDisappear {
             stopTimer()
+        }
+    }
+    
+    // MARK: - Location Functions
+    
+    private func centerMapOnUserLocation() {
+        locationManager.requestLocation()
+        if let location = locationManager.userLocation {
+            withAnimation {
+                region.center = location.coordinate
+            }
         }
     }
     
@@ -138,7 +168,9 @@ struct VolunteerDetailView: View {
     // MARK: - Components
     
     private var mapViewBackground: some View {
-        Map(coordinateRegion: $region, annotationItems: volunteerLocations) { location in
+        Map(coordinateRegion: $region,
+            showsUserLocation: true,  // 사용자 위치 표시
+            annotationItems: volunteerLocations) { location in
             MapAnnotation(coordinate: location.coordinate) {
                 Button(action: {
                     if !isParticipating {
@@ -191,21 +223,21 @@ struct VolunteerDetailView: View {
                 .foregroundColor(.gray)
                 .padding(.leading, 20)
             
-                    ZStack(alignment: .leading) {
-                        if searchText.isEmpty {
-                            Text("원하는 지역을 입력하세요")
-                                .font(.system(size: 14))
-                                .foregroundColor(Color(hex: "828282"))
-                        }
-                        TextField("", text: $searchText)
-                            .font(.system(size: 14))
-                            .foregroundColor(.primary)
-                            .focused($isSearchFocused)
-                            .submitLabel(.search)
-                            .onSubmit {
-                                isSearchFocused = false
-                            }
+            ZStack(alignment: .leading) {
+                if searchText.isEmpty {
+                    Text("원하는 지역을 입력하세요")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color(hex: "828282"))
+                }
+                TextField("", text: $searchText)
+                    .font(.system(size: 14))
+                    .foregroundColor(.primary)
+                    .focused($isSearchFocused)
+                    .submitLabel(.search)
+                    .onSubmit {
+                        isSearchFocused = false
                     }
+            }
             if !searchText.isEmpty {
                 Button(action: {
                     searchText = ""
@@ -500,6 +532,38 @@ struct VolunteerDetailView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 60)
         }
+    }
+}
+
+// MARK: - Location Manager
+
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    @Published var userLocation: CLLocation?
+    @Published var authorizationStatus: CLAuthorizationStatus?
+    
+    override init() {
+        super.init()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        manager.requestWhenInUseAuthorization()
+        manager.startUpdatingLocation()
+    }
+    
+    func requestLocation() {
+        manager.requestLocation()
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        userLocation = locations.first
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Location error: \(error.localizedDescription)")
+    }
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        authorizationStatus = manager.authorizationStatus
     }
 }
 
