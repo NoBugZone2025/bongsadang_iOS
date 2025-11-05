@@ -3,6 +3,7 @@ import MapboxMaps
 import CoreLocation
 import Combine
 
+// MARK: - 위치 관리 클래스
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let locationManager = CLLocationManager()
     @Published var userLocation: CLLocationCoordinate2D?
@@ -18,9 +19,23 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         userLocation = location.coordinate
+        print("📍 위치 업데이트: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+        print("🔐 위치 권한 상태: \(status.rawValue)")
+        switch status {
+        case .authorizedWhenInUse, .authorizedAlways:
+            locationManager.startUpdatingLocation()
+        case .denied, .restricted:
+            print("❌ 위치 권한이 거부되었습니다")
+        default:
+            break
+        }
     }
 }
 
+// MARK: - MapboxView
 struct MapboxView: UIViewRepresentable {
     private let token = "sk.eyJ1IjoiYm9uZ3NhZGFuZyIsImEiOiJjbWhtMjZ4a2oyMGhyMm1zNzdudGhvbzhmIn0.g9zLfdJDDgs52jOs6jmZRA"
     private let styleURL = "mapbox://styles/bongsadang/cmhlxqa1d00k101si5frs0lkb"
@@ -32,36 +47,106 @@ struct MapboxView: UIViewRepresentable {
     
     class Coordinator {
         var hasMovedToUserLocation = false
+        var cancellables = Set<AnyCancellable>()
     }
 
     func makeUIView(context: Context) -> MapView {
+        // MapView 초기화
         let mapView = MapView(frame: .zero)
         
-        mapView.mapboxMap.loadStyleURI(StyleURI(rawValue: styleURL) ?? .streets)
+        // Access Token 설정
+        MapboxOptions.accessToken = token
         
-        let puckConfiguration = Puck2DConfiguration.makeDefault(showBearing: true)
-        mapView.location.options.puckType = .puck2D(puckConfiguration)
+        // 스타일 로드
+        mapView.mapboxMap.loadStyle(StyleURI(rawValue: styleURL) ?? .streets)
+        
+        // 스타일 로드 후 3D 건물 레이어 추가
+        mapView.mapboxMap.onStyleLoaded.observeNext { _ in
+            do {
+                // 3D 건물 레이어 추가
+                var layer = FillExtrusionLayer(id: "3d-buildings", source: "composite")
+                layer.sourceLayer = "building"
+                layer.filter = Exp(.eq) {
+                    Exp(.geometryType)
+                    "Polygon"
+                }
+                layer.minZoom = 15
+                layer.fillExtrusionColor = .constant(StyleColor(.lightGray))
+                layer.fillExtrusionHeight = .expression(Exp(.get) { "height" })
+                layer.fillExtrusionBase = .expression(Exp(.get) { "min_height" })
+                layer.fillExtrusionOpacity = .constant(0.8)
+                
+                try mapView.mapboxMap.addLayer(layer)
+            } catch {
+                print("Error adding 3D buildings layer: \(error)")
+            }
+        }.store(in: &context.coordinator.cancellables)
+
+        // 위치 추적 활성화
+        mapView.location.options.puckType = .puck2D()
+        mapView.location.options.puckBearingEnabled = true
         
         return mapView
     }
 
     func updateUIView(_ uiView: MapView, context: Context) {
-        if let userLocation = locationManager.userLocation, !context.coordinator.hasMovedToUserLocation {
-            let camera = CameraOptions(center: userLocation, zoom: 14)
-            uiView.mapboxMap.setCamera(to: camera)
+        if let userLocation = locationManager.userLocation,
+           !context.coordinator.hasMovedToUserLocation {
+            
+            print("🎥 카메라 이동: \(userLocation.latitude), \(userLocation.longitude)")
+            
+            // 3D 시점으로 카메라 이동
+            let camera = CameraOptions(
+                center: userLocation,
+                zoom: 16,          // 확대 정도
+                bearing: 45,       // 회전각 (북동 방향)
+                pitch: 60          // 기울기 (3D 효과)
+            )
+            
+            uiView.camera.ease(to: camera, duration: 1.5)
             context.coordinator.hasMovedToUserLocation = true
         }
     }
 }
 
+// MARK: - ContentView
 struct ContentView: View {
     @StateObject private var locationManager = LocationManager()
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
+            // 지도
             MapboxView(locationManager: locationManager)
                 .ignoresSafeArea()
             
+            // 네비게이션바
+            VStack(spacing: 0) {
+                Color.white
+                    .ignoresSafeArea(.container, edges: .top) // Safe Area 위까지 확장
+                    .frame(height: 0)
+                
+                HStack(spacing: 8) {
+                    Image("로고")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 30)
+                        .padding(.leading, 11)
+                        .padding(.top, 11)
+                    
+                    Image("logoText")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 30)
+                        .padding(.top, 11)
+                    
+                    Spacer()
+                }
+                .frame(height: 58)
+                .background(Color.white)
+                .shadow(color: .black.opacity(0.1), radius: 4, y: 2) // 살짝 입체감 추가
+            }
+            
+            // 하단 정보
             VStack {
                 Spacer()
                 HStack {
@@ -81,6 +166,7 @@ struct ContentView: View {
     }
 }
 
+// MARK: - Preview
 #Preview {
     ContentView()
 }
