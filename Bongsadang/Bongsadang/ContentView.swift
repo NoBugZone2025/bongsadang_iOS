@@ -52,6 +52,31 @@ struct VolunteerDetailView: View {
         return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
     
+    // 동적으로 생성되는 봉사 위치들
+    var volunteerLocations: [VolunteerLocation] {
+        guard let userLat = locationManager.userLocation?.coordinate.latitude,
+              let userLon = locationManager.userLocation?.coordinate.longitude else {
+            // 위치 정보가 아직 없으면 빈 배열 반환
+            return []
+        }
+        
+        // 내 위치 주변에 봉사 게시물 마커들 배치 (반경 약 2-3km 내)
+        return [
+            VolunteerLocation(id: 1, coordinate: CLLocationCoordinate2D(latitude: userLat + 0.008, longitude: userLon + 0.012)),
+            VolunteerLocation(id: 2, coordinate: CLLocationCoordinate2D(latitude: userLat - 0.005, longitude: userLon - 0.008)),
+            VolunteerLocation(id: 3, coordinate: CLLocationCoordinate2D(latitude: userLat - 0.010, longitude: userLon + 0.005)),
+            VolunteerLocation(id: 4, coordinate: CLLocationCoordinate2D(latitude: userLat + 0.003, longitude: userLon - 0.010)),
+            VolunteerLocation(id: 5, coordinate: CLLocationCoordinate2D(latitude: userLat - 0.002, longitude: userLon + 0.015)),
+            VolunteerLocation(id: 6, coordinate: CLLocationCoordinate2D(latitude: userLat + 0.012, longitude: userLon + 0.003)),
+            VolunteerLocation(id: 7, coordinate: CLLocationCoordinate2D(latitude: userLat + 0.001, longitude: userLon - 0.006)),
+            VolunteerLocation(id: 8, coordinate: CLLocationCoordinate2D(latitude: userLat + 0.006, longitude: userLon + 0.008)),
+            VolunteerLocation(id: 9, coordinate: CLLocationCoordinate2D(latitude: userLat + 0.015, longitude: userLon - 0.004)),
+            VolunteerLocation(id: 10, coordinate: CLLocationCoordinate2D(latitude: userLat + 0.004, longitude: userLon + 0.002)),
+            VolunteerLocation(id: 11, coordinate: CLLocationCoordinate2D(latitude: userLat + 0.010, longitude: userLon + 0.010)),
+            VolunteerLocation(id: 12, coordinate: CLLocationCoordinate2D(latitude: userLat + 0.018, longitude: userLon - 0.002))
+        ]
+    }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // 배경 지도 (전체 화면)
@@ -579,13 +604,6 @@ struct VolunteerLocation: Identifiable, Equatable {
     let id: Int
     let coordinate: CLLocationCoordinate2D
 }
-
-let volunteerLocations = [
-    VolunteerLocation(id: 1, coordinate: CLLocationCoordinate2D(latitude: 37.5700, longitude: 126.9850)),
-    VolunteerLocation(id: 2, coordinate: CLLocationCoordinate2D(latitude: 37.5650, longitude: 126.9750)),
-    VolunteerLocation(id: 3, coordinate: CLLocationCoordinate2D(latitude: 37.5620, longitude: 126.9800)),
-    VolunteerLocation(id: 8, coordinate: CLLocationCoordinate2D(latitude: 37.5640, longitude: 126.9820))
-]
 
 // MARK: - Color Extension
 
