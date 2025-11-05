@@ -1,233 +1,354 @@
 import SwiftUI
-import MapboxMaps
-import CoreLocation
-import Combine
+import MapKit
 
-// MARK: - 위치 관리 클래스
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
-    private let locationManager = CLLocationManager()
-    @Published var userLocation: CLLocationCoordinate2D?
-    
-    override init() {
-        super.init()
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        locationManager.requestWhenInUseAuthorization()
-        locationManager.startUpdatingLocation()
-    }
-    
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let location = locations.last else { return }
-        userLocation = location.coordinate
-        print("📍 위치 업데이트: \(location.coordinate.latitude), \(location.coordinate.longitude)")
-    }
-    
-    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
-        print("🔐 위치 권한 상태: \(status.rawValue)")
-        switch status {
-        case .authorizedWhenInUse, .authorizedAlways:
-            locationManager.startUpdatingLocation()
-        case .denied, .restricted:
-            print("❌ 위치 권한이 거부되었습니다")
-        default:
-            break
-        }
-    }
-}
-
-// MARK: - MapboxView
-struct MapboxView: UIViewRepresentable {
-    private let token = "sk.eyJ1IjoiYm9uZ3NhZGFuZyIsImEiOiJjbWhtMjZ4a2oyMGhyMm1zNzdudGhvbzhmIn0.g9zLfdJDDgs52jOs6jmZRA"
-    private let styleURL = "mapbox://styles/bongsadang/cmhlxqa1d00k101si5frs0lkb"
-    @ObservedObject var locationManager: LocationManager
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-    
-    class Coordinator {
-        var hasMovedToUserLocation = false
-        var cancellables = Set<AnyCancellable>()
-    }
-
-    func makeUIView(context: Context) -> MapView {
-        // MapView 초기화
-        let mapView = MapView(frame: .zero)
-        
-        // Access Token 설정
-        MapboxOptions.accessToken = token
-        
-        // 스타일 로드
-        mapView.mapboxMap.loadStyle(StyleURI(rawValue: styleURL) ?? .streets)
-        
-        // 스타일 로드 후 3D 건물 레이어 추가
-        mapView.mapboxMap.onStyleLoaded.observeNext { _ in
-            do {
-                // 3D 건물 레이어 추가
-                var layer = FillExtrusionLayer(id: "3d-buildings", source: "composite")
-                layer.sourceLayer = "building"
-                layer.filter = Exp(.eq) {
-                    Exp(.geometryType)
-                    "Polygon"
-                }
-                layer.minZoom = 15
-                layer.fillExtrusionColor = .constant(StyleColor(.lightGray))
-                layer.fillExtrusionHeight = .expression(Exp(.get) { "height" })
-                layer.fillExtrusionBase = .expression(Exp(.get) { "min_height" })
-                layer.fillExtrusionOpacity = .constant(0.8)
-                
-                try mapView.mapboxMap.addLayer(layer)
-            } catch {
-                print("Error adding 3D buildings layer: \(error)")
-            }
-        }.store(in: &context.coordinator.cancellables)
-
-        // 위치 추적 활성화
-        let configuration = Puck2DConfiguration(topImage: UIImage(named: "mylocation"), bearingImage: UIImage(named: "mylocation"))
-        mapView.location.options.puckType = .puck2D(configuration)
-        mapView.location.options.puckBearingEnabled = true
-        
-        return mapView
-    }
-
-    func updateUIView(_ uiView: MapView, context: Context) {
-        if let userLocation = locationManager.userLocation,
-           !context.coordinator.hasMovedToUserLocation {
-            
-            print("🎥 카메라 이동: \(userLocation.latitude), \(userLocation.longitude)")
-            
-            // 3D 시점으로 카메라 이동
-            let camera = CameraOptions(
-                center: userLocation,
-                zoom: 17,          // 확대 정도
-                bearing: 0,        // 회전각 (0 = 북쪽)
-                pitch: 45          // 기울기 (45도 = 적당히 위에서)
-            )
-            
-            uiView.camera.ease(to: camera, duration: 1.5)
-            context.coordinator.hasMovedToUserLocation = true
-        }
-    }
-}
-
-// MARK: - ContentView
-struct ContentView: View {
-    @StateObject private var locationManager = LocationManager()
+struct VolunteerDetailView: View {
+    @State private var searchText: String = ""
+    @FocusState private var isSearchFocused: Bool
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780),
+        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+    )
     
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            // 지도
-            MapboxView(locationManager: locationManager)
-                .ignoresSafeArea()
+        ZStack(alignment: .bottom) {
+            // 배경 지도 (전체 화면)
+            mapViewBackground
+                .onTapGesture {
+                    isSearchFocused = false
+                }
             
-            // 네비게이션바
+            // 상단 컨텐츠 레이어
             VStack(spacing: 0) {
-                Color.white
-                    .ignoresSafeArea(.container, edges: .top) // Safe Area 위까지 확장
-                    .frame(height: 0)
+                // 상단 네비게이션 바
+                topNavigationBar
                 
-                HStack(spacing: 8) {
-                    Image("로고")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 30)
-                        .padding(.leading, 11)
-                        .padding(.top, 11)
-                    
-                    Image("logoText")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 30)
-                        .padding(.top, 11)
-                    
-                    Spacer()
-                }
-                .frame(height: 58)
-                .background(Color.white)
-                .shadow(color: .black.opacity(0.1), radius: 4, y: 2) // 살짝 입체감 추가
+                // 지역 검색 필드
+                searchBar
+                
+                Spacer()
             }
             
-            // 검색창 (네비게이션 바 아래 9pt 떨어진 위치)
+            // 하단 카드와 버튼들
+            VStack(spacing: 0) {
+                Spacer()
+                
+                // 봉사 활동 상세 카드
+                volunteerDetailCard
+                    .padding(.horizontal, 10)
+                    .onTapGesture {
+                        isSearchFocused = false
+                    }
+                
+                Spacer()
+                    .frame(height: 100)
+            }
+            
+            // 하단 탭 바
+            bottomTabBar
+
+            // 플로팅 액션 버튼 (탭바 위에 약간 걸치도록)
             VStack {
+                Spacer()
+                floatingActionButton
+                    .offset(y: -42) // 탭바와 겹치도록 오프셋 조정
+            }
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+    
+    // MARK: - Components
+    
+    private var mapViewBackground: some View {
+        Map(coordinateRegion: $region, annotationItems: volunteerLocations) { location in
+            MapAnnotation(coordinate: location.coordinate) {
+                mapMarker(number: location.id)
+            }
+        }
+        .ignoresSafeArea()
+    }
+    
+    private var topNavigationBar: some View {
+        HStack {
+            Button(action: {}) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundColor(.primary)
+            }
+            .padding(.leading, 16)
+            
+            Spacer()
+            
+            HStack(spacing: 8) {
+                Image("logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                
+                Image("logoText")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 21)
+            }
+            
+            Spacer()
+            
+            // 오른쪽 균형을 위한 투명 공간
+            Color.clear
+                .frame(width: 56)
+        }
+        .frame(height: 58)
+        .background(Color.white)
+    }
+    
+    private var searchBar: some View {
+        HStack {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.gray)
+                .padding(.leading, 20)
+            
+            TextField("원하는 지역을 입력하세요", text: $searchText)
+                .font(.system(size: 14))
+                .foregroundColor(.primary)
+                .focused($isSearchFocused)
+                .submitLabel(.search)
+                .onSubmit {
+                    isSearchFocused = false
+                }
+            
+            if !searchText.isEmpty {
+                Button(action: {
+                    searchText = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                }
+                .padding(.trailing, 20)
+            }
+            
+            Spacer()
+        }
+        .frame(height: 44)
+        .background(Color(hex: "FFF8DC"))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(hex: "F5DEB3"), lineWidth: 1)
+        )
+        .padding(.horizontal, 10)
+        .padding(.top, 9)
+    }
+    
+    private func mapMarker(number: Int) -> some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: 40, height: 40)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white, lineWidth: 3)
+                )
+            
+            Text("\(number)")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.white)
+            
+            if number == 3 {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 12, height: 12)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white, lineWidth: 2)
+                    )
+                    .offset(x: 14, y: -14)
+            }
+        }
+    }
+    
+    private var volunteerDetailCard: some View {
+        VStack(spacing: 10) {
+            // 상세 정보 카드
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top) {
+                    Text("독거노인 도시락 배달")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(hex: "8B4513"))
+                    
+                    Spacer()
+                    
+                    Text("2025.11.15")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(hex: "A0522D"))
+                }
+                
+                HStack(alignment: .top) {
+                    Text("따뜻한 마음으로 어르신들께\n도시락을 전달해요")
+                        .font(.system(size: 15))
+                        .foregroundColor(Color(hex: "A0522D"))
+                        .lineSpacing(4)
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("by 김봉사")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "A0522D"))
+                        
+                        Text("3/5")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(Color(hex: "D2691E"))
+                    }
+                }
+                
                 HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.gray)
+                    HStack(spacing: 4) {
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(hex: "8B4513"))
+                        Text("서울시 강남구")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "A0522D"))
+                    }
                     
-                    Text("원하는 지역을 입력하세요")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 16))
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(hex: "8B4513"))
+                        Text("14:00-16:00")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "A0522D"))
+                    }
                     
-                    Spacer()
+                    HStack(spacing: 4) {
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(hex: "8B4513"))
+                        Text("1.2km")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "A0522D"))
+                    }
                 }
-                .padding(.horizontal, 16)
-                .frame(height: 44)
-                .background(Color(hex: "FFF8DC"))
-                .cornerRadius(16)
-                .padding(.horizontal, 10)
-                .padding(.top, 67) // 네비게이션 바(58) + 간격(9)
-                
-                Spacer()
+                .padding(.top, 4)
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(hex: "FFF7F0"))
+            .cornerRadius(24)
             
-            // 하단 탭바
-            VStack {
-                Spacer()
-                
-                HStack(spacing: 0) {
-                    // Home 탭
-                    Button(action: {
-                        // Home 액션
-                    }) {
-                        Image("home")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 32, height: 32)
-                            .frame(maxWidth: .infinity)
-                    }
-                    
-                    // Shop 탭
-                    Button(action: {
-                        // Shop 액션
-                    }) {
-                        Image("shop")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 32, height: 32)
-                            .frame(maxWidth: .infinity)
-                    }
-                    
-                    // Rank 탭
-                    Button(action: {
-                        // Rank 액션
-                    }) {
-                        Image("rank")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 32, height: 32)
-                            .frame(maxWidth: .infinity)
-                    }
-                    
-                    // My 탭
-                    Button(action: {
-                        // My 액션
-                    }) {
-                        Image("my")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 32, height: 32)
-                            .frame(maxWidth: .infinity)
-                    }
+            // 액션 버튼들
+            HStack(spacing: 16) {
+                Button(action: {}) {
+                    Text("돌아가기")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color.gray.opacity(0.6))
+                        .cornerRadius(28)
                 }
-                .frame(height: 80.4)
-                .background(Color.white)
-                .shadow(color: .black.opacity(0.1), radius: 8, y: -2)
+                
+                Button(action: {}) {
+                    Text("참가하기")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(28)
+                }
             }
-            .ignoresSafeArea(edges: .bottom)
+            .padding(.horizontal, 8)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 32)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
+        )
+    }
+    
+    private var floatingActionButton: some View {
+        Button(action: {}) {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 56, height: 56)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(28)
+                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+        }
+    }
+    
+    private var bottomTabBar: some View {
+        HStack(spacing: 0) {
+            tabBarItem(icon: "house", isSelected: false)
+            tabBarItem(icon: "bag", isSelected: false)
+            
+            // 중앙 빈 공간 (플로팅 버튼을 위한)
+            Spacer()
+                .frame(width: 80)
+            
+            tabBarItem(icon: "chart.bar.fill", isSelected: false)
+            tabBarItem(icon: "person", isSelected: false)
+        }
+        .frame(height: 84)
+        .background(
+            Color.white
+                .overlay(
+                    Color(hex: "FFF7F0").opacity(0.3)
+                )
+                .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: -5)
+        )
+    }
+    
+    private func tabBarItem(icon: String, isSelected: Bool) -> some View {
+        Button(action: {}) {
+            VStack(spacing: 0) {
+                Image(systemName: icon)
+                    .font(.system(size: 28))
+                    .foregroundColor(isSelected ? Color(hex: "D2691E") : Color.gray.opacity(0.6))
+                    .frame(height: 32)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 60)
         }
     }
 }
 
-// MARK: - Color Extension (Hex)
+// MARK: - Supporting Types
+
+struct VolunteerLocation: Identifiable {
+    let id: Int
+    let coordinate: CLLocationCoordinate2D
+}
+
+let volunteerLocations = [
+    VolunteerLocation(id: 1, coordinate: CLLocationCoordinate2D(latitude: 37.5700, longitude: 126.9850)),
+    VolunteerLocation(id: 2, coordinate: CLLocationCoordinate2D(latitude: 37.5650, longitude: 126.9750)),
+    VolunteerLocation(id: 3, coordinate: CLLocationCoordinate2D(latitude: 37.5620, longitude: 126.9800)),
+    VolunteerLocation(id: 8, coordinate: CLLocationCoordinate2D(latitude: 37.5640, longitude: 126.9820))
+]
+
+// MARK: - Color Extension
+
 extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -242,8 +363,9 @@ extension Color {
         case 8: // ARGB (32-bit)
             (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
         default:
-            (a, r, g, b) = (255, 0, 0, 0)
+            (a, r, g, b) = (1, 1, 1, 0)
         }
+
         self.init(
             .sRGB,
             red: Double(r) / 255,
@@ -255,6 +377,9 @@ extension Color {
 }
 
 // MARK: - Preview
-#Preview {
-    ContentView()
+
+struct VolunteerDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        VolunteerDetailView()
+    }
 }
