@@ -64,28 +64,29 @@ struct VolunteerDetailView: View {
                 // 지역 검색 필드
                 searchBar
                 
+                // 참가 중일 때 카드가 여기 표시됨
+                if isParticipating {
+                    activeVolunteerCard
+                        .padding(.horizontal, 10)
+                        .padding(.top, 13)
+                        .onTapGesture {
+                            isSearchFocused = false
+                        }
+                }
+                
                 Spacer()
             }
             
-            // 하단 카드
-            if selectedLocation != nil || isParticipating {
+            // 하단 카드 (선택했을 때만 표시)
+            if selectedLocation != nil && !isParticipating {
                 VStack(spacing: 0) {
                     Spacer()
                     
-                    // 봉사 활동 카드 (상태에 따라 다르게 표시)
-                    if isParticipating {
-                        activeVolunteerCard
-                            .padding(.horizontal, 10)
-                            .onTapGesture {
-                                isSearchFocused = false
-                            }
-                    } else {
-                        volunteerDetailCard
-                            .padding(.horizontal, 10)
-                            .onTapGesture {
-                                isSearchFocused = false
-                            }
-                    }
+                    volunteerDetailCard
+                        .padding(.horizontal, 10)
+                        .onTapGesture {
+                            isSearchFocused = false
+                        }
                     
                     Spacer()
                         .frame(height: 100)
