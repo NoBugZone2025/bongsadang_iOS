@@ -98,9 +98,9 @@ struct MapboxView: UIViewRepresentable {
             // 3D 시점으로 카메라 이동
             let camera = CameraOptions(
                 center: userLocation,
-                zoom: 16,          // 확대 정도
-                bearing: 45,       // 회전각 (북동 방향)
-                pitch: 60          // 기울기 (3D 효과)
+                zoom: 17,          // 확대 정도
+                bearing: 0,        // 회전각 (0 = 북쪽)
+                pitch: 45          // 기울기 (45도 = 적당히 위에서)
             )
             
             uiView.camera.ease(to: camera, duration: 1.5)
