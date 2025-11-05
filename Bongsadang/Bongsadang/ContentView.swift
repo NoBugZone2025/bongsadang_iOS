@@ -420,34 +420,34 @@ struct VolunteerDetailView: View {
     
     private var activeVolunteerCard: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .top) {
                     Text("독거노인 도시락 배달")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Color(hex: "8B4513"))
                     
                     Spacer()
                     
                     Text("2025.11.15")
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                         .foregroundColor(Color(hex: "A0522D"))
                 }
                 
                 HStack(alignment: .top) {
                     Text("따뜻한 마음으로 어르신들께\n도시락을 전달해요")
-                        .font(.system(size: 15))
+                        .font(.system(size: 13))
                         .foregroundColor(Color(hex: "A0522D"))
-                        .lineSpacing(4)
+                        .lineSpacing(2)
                     
                     Spacer()
                     
-                    VStack(alignment: .trailing, spacing: 4) {
+                    VStack(alignment: .trailing, spacing: 2) {
                         Text("by 김봉사")
-                            .font(.system(size: 13))
+                            .font(.system(size: 12))
                             .foregroundColor(Color(hex: "A0522D"))
                         
                         Text("3/5")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(Color(hex: "D2691E"))
                     }
                 }
@@ -456,10 +456,10 @@ struct VolunteerDetailView: View {
                 Rectangle()
                     .fill(Color.white)
                     .frame(height: 1)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 4)
                 
                 // 타이머와 진행바
-                VStack(spacing: 8) {
+                VStack(spacing: 6) {
                     HStack {
                         Spacer()
                         Text(formattedTime)
@@ -491,7 +491,7 @@ struct VolunteerDetailView: View {
                             // 인증 로직
                         }) {
                             Text("인증하기")
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.white)
                                 .frame(width: 70, height: 33.14)
                                 .background(
@@ -504,23 +504,23 @@ struct VolunteerDetailView: View {
                                 .cornerRadius(16.57)
                         }
                     }
-                    .padding(.top, 6)
+                    .padding(.top, 4)
                 }
             }
-            .padding(20)
+            .padding(.vertical, 15)
+            .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(hex: "FFF7F0"))
             .cornerRadius(24)
         }
-        .padding(.horizontal, 16)
+        .frame(height: 200)
+        .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 32)
                 .fill(Color.white)
                 .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
         )
-        .padding(.horizontal, 10)
     }
-    
     private var floatingActionButton: some View {
         Button(action: {}) {
             Image(systemName: "plus")
