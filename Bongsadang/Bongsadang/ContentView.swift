@@ -3,8 +3,6 @@ import MapKit
 import CoreLocation
 import Combine
 
-// MARK: - Main View
-
 struct VolunteerDetailView: View {
     @State private var searchText: String = ""
     @FocusState private var isSearchFocused: Bool
@@ -13,11 +11,7 @@ struct VolunteerDetailView: View {
         span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
     @State private var selectedLocation: VolunteerLocation?
-    
-    // 위치 매니저 추가
     @StateObject private var locationManager = LocationManager()
-    
-    // 봉사 참여 상태 및 타이머
     @State private var isParticipating: Bool = false
     @State private var elapsedTime: TimeInterval = 0
     @State private var timer: Timer?
@@ -42,16 +36,13 @@ struct VolunteerDetailView: View {
         let seconds = Int(elapsedTime) % 60
         return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
-    
-    // 동적으로 생성되는 봉사 위치들
+
     var volunteerLocations: [VolunteerLocation] {
         guard let userLat = locationManager.userLocation?.coordinate.latitude,
               let userLon = locationManager.userLocation?.coordinate.longitude else {
-            // 위치 정보가 아직 없으면 빈 배열 반환
             return []
         }
-        
-        // 내 위치 주변에 봉사 게시물 마커들 배치 (반경 약 2-3km 내)
+
         return [
             VolunteerLocation(id: 1, coordinate: CLLocationCoordinate2D(latitude: userLat + 0.008, longitude: userLon + 0.012)),
             VolunteerLocation(id: 2, coordinate: CLLocationCoordinate2D(latitude: userLat - 0.005, longitude: userLon - 0.008)),
@@ -70,7 +61,6 @@ struct VolunteerDetailView: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
-            // 배경 지도 (전체 화면)
             mapViewBackground
                 .onTapGesture {
                     isSearchFocused = false
@@ -78,16 +68,9 @@ struct VolunteerDetailView: View {
                         selectedLocation = nil
                     }
                 }
-            
-            // 상단 컨텐츠 레이어
             VStack(spacing: 0) {
-                // 상단 네비게이션 바
                 topNavigationBar
-                
-                // 지역 검색 필드
                 searchBar
-                
-                // 참가 중일 때 카드가 여기 표시됨
                 if isParticipating {
                     activeVolunteerCard
                         .padding(.horizontal, 10)
@@ -99,8 +82,6 @@ struct VolunteerDetailView: View {
                 
                 Spacer()
             }
-            
-            // 하단 카드 (선택했을 때만 표시)
             if selectedLocation != nil && !isParticipating {
                 VStack(spacing: 0) {
                     Spacer()
@@ -116,11 +97,7 @@ struct VolunteerDetailView: View {
                 }
                 .transition(.move(edge: .bottom))
             }
-            
-            // 하단 탭 바
             bottomTabBar
-
-            // 플로팅 액션 버튼 (탭바 위에 약간 걸치도록)
             VStack {
                 Spacer()
                 floatingActionButton
@@ -131,11 +108,9 @@ struct VolunteerDetailView: View {
         .animation(.easeInOut, value: selectedLocation)
         .animation(.easeInOut, value: isParticipating)
         .onAppear {
-            // 앱이 시작될 때 사용자 위치로 지도 중앙 이동
             centerMapOnUserLocation()
         }
         .onChange(of: locationManager.userLocation) { newLocation in
-            // 위치가 업데이트되면 지도 중앙으로 이동
             if let location = newLocation {
                 withAnimation {
                     region.center = location.coordinate
@@ -146,9 +121,6 @@ struct VolunteerDetailView: View {
             stopTimer()
         }
     }
-    
-    // MARK: - Location Functions
-    
     private func centerMapOnUserLocation() {
         locationManager.requestLocation()
         if let location = locationManager.userLocation {
@@ -157,9 +129,6 @@ struct VolunteerDetailView: View {
             }
         }
     }
-    
-    // MARK: - Timer Functions
-    
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             if elapsedTime < totalDuration {
@@ -181,11 +150,9 @@ struct VolunteerDetailView: View {
         startTimer()
     }
     
-    // MARK: - Components
-    
     private var mapViewBackground: some View {
         Map(coordinateRegion: $region,
-            showsUserLocation: true,  // 사용자 위치 표시
+            showsUserLocation: true,
             annotationItems: volunteerLocations) { location in
             MapAnnotation(coordinate: location.coordinate) {
                 Button(action: {
@@ -224,8 +191,6 @@ struct VolunteerDetailView: View {
             }
             
             Spacer()
-            
-            // 오른쪽 균형을 위한 투명 공간
             Color.clear
                 .frame(width: 56)
         }
@@ -312,7 +277,6 @@ struct VolunteerDetailView: View {
     
     private var volunteerDetailCard: some View {
         VStack(spacing: 10) {
-            // 상세 정보 카드
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top) {
                     Text("독거노인 도시락 배달")
@@ -379,8 +343,6 @@ struct VolunteerDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(hex: "FFF7F0"))
             .cornerRadius(24)
-            
-            // 액션 버튼들
             HStack(spacing: 16) {
                 Button(action: { selectedLocation = nil }) {
                     Text("돌아가기")
@@ -417,7 +379,6 @@ struct VolunteerDetailView: View {
                 .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
         )
     }
-    
     private var activeVolunteerCard: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
@@ -451,14 +412,10 @@ struct VolunteerDetailView: View {
                             .foregroundColor(Color(hex: "D2691E"))
                     }
                 }
-                
-                // 구분선
                 Rectangle()
                     .fill(Color.white)
                     .frame(height: 1)
                     .padding(.vertical, 4)
-                
-                // 타이머와 진행바
                 VStack(spacing: 6) {
                     HStack {
                         Spacer()
@@ -469,12 +426,9 @@ struct VolunteerDetailView: View {
                     
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
-                            // 배경 바
                             Rectangle()
                                 .fill(Color.white)
                                 .frame(height: 2)
-                            
-                            // 진행 바
                             Rectangle()
                                 .fill(Color(hex: "FFD1A0"))
                                 .frame(width: geometry.size.width * progress, height: 2)
@@ -482,13 +436,10 @@ struct VolunteerDetailView: View {
                     }
                     .frame(height: 2)
                 }
-                
-                // 인증하기 버튼 (시간이 다 되면 표시)
                 if elapsedTime >= totalDuration {
                     HStack {
                         Spacer()
                         Button(action: {
-                            // 인증 로직
                         }) {
                             Text("인증하기")
                                 .font(.system(size: 14, weight: .medium))
@@ -547,11 +498,8 @@ struct VolunteerDetailView: View {
         HStack(spacing: 0) {
             tabBarItem(icon: "house", isSelected: false)
             tabBarItem(icon: "bag", isSelected: false)
-            
-            // 중앙 빈 공간 (플로팅 버튼을 위한)
             Spacer()
                 .frame(width: 80)
-            
             tabBarItem(icon: "chart.bar.fill", isSelected: false)
             tabBarItem(icon: "person", isSelected: false)
         }
@@ -564,7 +512,7 @@ struct VolunteerDetailView: View {
                 .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: -5)
         )
     }
-    
+
     private func tabBarItem(icon: String, isSelected: Bool) -> some View {
         Button(action: {}) {
             VStack(spacing: 0) {
@@ -578,8 +526,6 @@ struct VolunteerDetailView: View {
         }
     }
 }
-
-// MARK: - Location Manager
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
@@ -611,8 +557,6 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
 }
 
-// MARK: - Supporting Types
-
 extension CLLocationCoordinate2D: Equatable {
     public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
         lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
@@ -623,8 +567,6 @@ struct VolunteerLocation: Identifiable, Equatable {
     let id: Int
     let coordinate: CLLocationCoordinate2D
 }
-
-// MARK: - Color Extension
 
 extension Color {
     init(hex: String) {
@@ -652,8 +594,6 @@ extension Color {
         )
     }
 }
-
-// MARK: - Preview
 
 struct VolunteerDetailView_Previews: PreviewProvider {
     static var previews: some View {
