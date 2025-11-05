@@ -1,9 +1,4 @@
-//
-//  ContentView.swift
-//  Bongsadang
-//
-//  Created by 이지훈 on 11/5/25.
-//
+
 
 import SwiftUI
 
