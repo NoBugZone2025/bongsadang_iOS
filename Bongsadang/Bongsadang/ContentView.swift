@@ -10,13 +10,50 @@ struct VolunteerDetailView: View {
     )
     @State private var selectedLocation: VolunteerLocation?
     
+    // 봉사 참여 상태 및 타이머
+    @State private var isParticipating: Bool = false
+    @State private var elapsedTime: TimeInterval = 0
+    @State private var timer: Timer?
+    
+    // 봉사 시간 설정 (14:00 시작, 16:00 종료)
+    let startTime: Date = {
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        components.hour = 14
+        components.minute = 0
+        return Calendar.current.date(from: components)!
+    }()
+    
+    let endTime: Date = {
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        components.hour = 16
+        components.minute = 0
+        return Calendar.current.date(from: components)!
+    }()
+    
+    var totalDuration: TimeInterval {
+        endTime.timeIntervalSince(startTime)
+    }
+    
+    var progress: Double {
+        min(elapsedTime / totalDuration, 1.0)
+    }
+    
+    var formattedTime: String {
+        let hours = Int(elapsedTime) / 3600
+        let minutes = (Int(elapsedTime) % 3600) / 60
+        let seconds = Int(elapsedTime) % 60
+        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+    }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // 배경 지도 (전체 화면)
             mapViewBackground
                 .onTapGesture {
                     isSearchFocused = false
-                    selectedLocation = nil
+                    if !isParticipating {
+                        selectedLocation = nil
+                    }
                 }
             
             // 상단 컨텐츠 레이어
@@ -30,17 +67,25 @@ struct VolunteerDetailView: View {
                 Spacer()
             }
             
-            // 하단 카드와 버튼들
-            if selectedLocation != nil {
+            // 하단 카드
+            if selectedLocation != nil || isParticipating {
                 VStack(spacing: 0) {
                     Spacer()
                     
-                    // 봉사 활동 상세 카드
-                    volunteerDetailCard
-                        .padding(.horizontal, 10)
-                        .onTapGesture {
-                            isSearchFocused = false
-                        }
+                    // 봉사 활동 카드 (상태에 따라 다르게 표시)
+                    if isParticipating {
+                        activeVolunteerCard
+                            .padding(.horizontal, 10)
+                            .onTapGesture {
+                                isSearchFocused = false
+                            }
+                    } else {
+                        volunteerDetailCard
+                            .padding(.horizontal, 10)
+                            .onTapGesture {
+                                isSearchFocused = false
+                            }
+                    }
                     
                     Spacer()
                         .frame(height: 100)
@@ -55,11 +100,38 @@ struct VolunteerDetailView: View {
             VStack {
                 Spacer()
                 floatingActionButton
-                    .offset(y: -42) // 탭바와 겹치도록 오프셋 조정
+                    .offset(y: -42)
             }
         }
         .ignoresSafeArea(edges: .bottom)
         .animation(.easeInOut, value: selectedLocation)
+        .animation(.easeInOut, value: isParticipating)
+        .onDisappear {
+            stopTimer()
+        }
+    }
+    
+    // MARK: - Timer Functions
+    
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            if elapsedTime < totalDuration {
+                elapsedTime += 1
+            } else {
+                stopTimer()
+            }
+        }
+    }
+    
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+    
+    private func startParticipation() {
+        isParticipating = true
+        selectedLocation = nil
+        startTimer()
     }
     
     // MARK: - Components
@@ -67,7 +139,11 @@ struct VolunteerDetailView: View {
     private var mapViewBackground: some View {
         Map(coordinateRegion: $region, annotationItems: volunteerLocations) { location in
             MapAnnotation(coordinate: location.coordinate) {
-                Button(action: { selectedLocation = location }) {
+                Button(action: {
+                    if !isParticipating {
+                        selectedLocation = location
+                    }
+                }) {
                     mapMarker(number: location.id)
                 }
             }
@@ -128,7 +204,7 @@ struct VolunteerDetailView: View {
                             .onSubmit {
                                 isSearchFocused = false
                             }
-                    }            
+                    }
             if !searchText.isEmpty {
                 Button(action: {
                     searchText = ""
@@ -267,7 +343,7 @@ struct VolunteerDetailView: View {
                         .cornerRadius(28)
                 }
                 
-                Button(action: {}) {
+                Button(action: { startParticipation() }) {
                     Text("참가하기")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.white)
@@ -291,6 +367,85 @@ struct VolunteerDetailView: View {
                 .fill(Color.white)
                 .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
         )
+    }
+    
+    private var activeVolunteerCard: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top) {
+                    Text("독거노인 도시락 배달")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(hex: "8B4513"))
+                    
+                    Spacer()
+                    
+                    Text("2025.11.15")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(hex: "A0522D"))
+                }
+                
+                HStack(alignment: .top) {
+                    Text("따뜻한 마음으로 어르신들께\n도시락을 전달해요")
+                        .font(.system(size: 15))
+                        .foregroundColor(Color(hex: "A0522D"))
+                        .lineSpacing(4)
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("by 김봉사")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "A0522D"))
+                        
+                        Text("3/5")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(Color(hex: "D2691E"))
+                    }
+                }
+                
+                // 구분선
+                Rectangle()
+                    .fill(Color.white)
+                    .frame(height: 1)
+                    .padding(.vertical, 8)
+                
+                // 타이머와 진행바
+                VStack(spacing: 8) {
+                    HStack {
+                        Spacer()
+                        Text(formattedTime)
+                            .font(.system(size: 10, weight: .regular))
+                            .foregroundColor(Color(hex: "8B4513"))
+                    }
+                    
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            // 배경 바
+                            Rectangle()
+                                .fill(Color.white)
+                                .frame(height: 2)
+                            
+                            // 진행 바
+                            Rectangle()
+                                .fill(Color(hex: "FFD1A0"))
+                                .frame(width: geometry.size.width * progress, height: 2)
+                        }
+                    }
+                    .frame(height: 2)
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(hex: "FFF7F0"))
+            .cornerRadius(24)
+        }
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 32)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
+        )
+        .padding(.horizontal, 10)
     }
     
     private var floatingActionButton: some View {
