@@ -535,6 +535,10 @@ struct VolunteerDetailView: View {
                     )
                 )
                 .cornerRadius(28)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white, lineWidth: 4)
+                )
                 .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
         }
     }
