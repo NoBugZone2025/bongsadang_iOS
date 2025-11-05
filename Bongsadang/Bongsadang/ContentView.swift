@@ -22,23 +22,14 @@ struct VolunteerDetailView: View {
     @State private var elapsedTime: TimeInterval = 0
     @State private var timer: Timer?
     
-    // 봉사 시간 설정 (14:00 시작, 16:00 종료)
-    let startTime: Date = {
-        var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        components.hour = 14
-        components.minute = 0
-        return Calendar.current.date(from: components)!
-    }()
+    let startTime: Date = Date()
     
     let endTime: Date = {
-        var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        components.hour = 16
-        components.minute = 0
-        return Calendar.current.date(from: components)!
+        return Date().addingTimeInterval(5)
     }()
     
     var totalDuration: TimeInterval {
-        endTime.timeIntervalSince(startTime)
+        5
     }
     
     var progress: Double {
@@ -490,6 +481,30 @@ struct VolunteerDetailView: View {
                         }
                     }
                     .frame(height: 2)
+                }
+                
+                // 인증하기 버튼 (시간이 다 되면 표시)
+                if elapsedTime >= totalDuration {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            // 인증 로직
+                        }) {
+                            Text("인증하기")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 70, height: 33.14)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(16.57)
+                        }
+                    }
+                    .padding(.top, 6)
                 }
             }
             .padding(20)
