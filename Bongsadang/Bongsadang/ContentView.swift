@@ -32,7 +32,6 @@ struct VolunteerDetailView: View {
     @State private var isPublicRecruitment: Bool = false
     @FocusState private var isTextFieldFocused: Bool
     
-    // NEW: 지도 중심으로 검색하기 위한 상태
     @State private var showRecenterButton: Bool = false
     @State private var isMapDragging: Bool = false
     
@@ -93,13 +92,11 @@ struct VolunteerDetailView: View {
                 Spacer()
             }
             
-            // NEW: 재중심 버튼과 현위치 검색 버튼
             VStack {
                 HStack {
                     Spacer()
                     
                     VStack(spacing: 12) {
-                        // 현 위치 검색 버튼
                         Button(action: {
                             searchCurrentMapCenter()
                         }) {
@@ -122,7 +119,6 @@ struct VolunteerDetailView: View {
                             .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
                         }
                         
-                        // 내 위치로 돌아가기 버튼
                         if showRecenterButton {
                             Button(action: {
                                 centerMapOnUserLocation()
@@ -164,7 +160,6 @@ struct VolunteerDetailView: View {
                 .transition(.move(edge: .bottom))
             }
             
-            // Ranking Bottom Sheet
             if showRankingModal {
                 VStack(spacing: 0) {
                     Spacer()
@@ -186,7 +181,6 @@ struct VolunteerDetailView: View {
                 .transition(.opacity)
             }
             
-            // My Page Bottom Sheet
             if showMyPageModal {
                 VStack(spacing: 0) {
                     Spacer()
@@ -208,7 +202,6 @@ struct VolunteerDetailView: View {
                 .transition(.opacity)
             }
             
-            // Verification Complete Modal
             if showVerificationComplete {
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
@@ -216,7 +209,6 @@ struct VolunteerDetailView: View {
                 verificationCompleteModal
             }
             
-            // Create Volunteer Modal
             if showCreateVolunteerModal {
                 VStack(spacing: 0) {
                     Spacer()
@@ -238,7 +230,6 @@ struct VolunteerDetailView: View {
                 .transition(.opacity)
             }
             
-            // Loading indicator
             if networkService.isLoading {
                 LoadingView()
             }
@@ -277,11 +268,9 @@ struct VolunteerDetailView: View {
         })
         .onAppear {
             centerMapOnUserLocation()
-            // 초기 로딩만 수행
             loadVolunteersAtCurrentLocation()
         }
         .onChange(of: region.center) { newCenter in
-            // 사용자가 지도를 드래그하면 재중심 버튼 표시
             checkIfMapMovedFromUserLocation(newCenter)
         }
         .onChange(of: networkService.volunteers) { volunteers in
@@ -292,20 +281,17 @@ struct VolunteerDetailView: View {
         }
     }
     
-    // NEW: 지도 중심이 사용자 위치에서 벗어났는지 확인
     private func checkIfMapMovedFromUserLocation(_ newCenter: CLLocationCoordinate2D) {
         guard let userLocation = locationManager.userLocation else { return }
         
         let distance = CLLocation(latitude: newCenter.latitude, longitude: newCenter.longitude)
             .distance(from: userLocation)
         
-        // 100m 이상 벗어나면 재중심 버튼 표시
         withAnimation {
             showRecenterButton = distance > 100
         }
     }
     
-    // NEW: 현재 지도 중심 위치로 검색
     private func searchCurrentMapCenter() {
         let center = region.center
         print("🔍 Searching at map center: lat=\(center.latitude), lon=\(center.longitude)")
@@ -329,7 +315,6 @@ struct VolunteerDetailView: View {
         }
     }
     
-    // MODIFIED: 초기 로딩 시에만 사용
     private func loadVolunteersAtCurrentLocation() {
         guard let userLocation = locationManager.userLocation else {
             print("⚠️ User location not available yet")
@@ -374,6 +359,92 @@ struct VolunteerDetailView: View {
         isParticipating = true
         selectedLocation = nil
         startTimer()
+    }
+    
+    private func submitVolunteerCreation() {
+        guard !createTitle.isEmpty else {
+            networkService.errorMessage = "제목을 입력해주세요."
+            return
+        }
+        
+        guard !createContent.isEmpty else {
+            networkService.errorMessage = "내용을 입력해주세요."
+            return
+        }
+        
+        guard !createParticipants.isEmpty, let maxParticipants = Int(createParticipants) else {
+            networkService.errorMessage = "올바른 모집 인원을 입력해주세요."
+            return
+        }
+        
+        guard !createStartTime.isEmpty, !createEndTime.isEmpty else {
+            networkService.errorMessage = "시작 시간과 종료 시간을 입력해주세요."
+            return
+        }
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "HH:mm"
+        
+        guard let startTime = dateFormatter.date(from: createStartTime),
+              let endTime = dateFormatter.date(from: createEndTime) else {
+            networkService.errorMessage = "시간 형식이 올바르지 않습니다. (예: 14:00)"
+            return
+        }
+        
+        let calendar = Calendar.current
+        let today = Date()
+        
+        var startComponents = calendar.dateComponents([.year, .month, .day], from: today)
+        let startTimeComponents = calendar.dateComponents([.hour, .minute], from: startTime)
+        startComponents.hour = startTimeComponents.hour
+        startComponents.minute = startTimeComponents.minute
+        
+        var endComponents = calendar.dateComponents([.year, .month, .day], from: today)
+        let endTimeComponents = calendar.dateComponents([.hour, .minute], from: endTime)
+        endComponents.hour = endTimeComponents.hour
+        endComponents.minute = endTimeComponents.minute
+        
+        guard let startDateTime = calendar.date(from: startComponents),
+              let endDateTime = calendar.date(from: endComponents) else {
+            networkService.errorMessage = "날짜 생성 중 오류가 발생했습니다."
+            return
+        }
+        
+        guard let userLocation = locationManager.userLocation else {
+            networkService.errorMessage = "위치 정보를 가져올 수 없습니다."
+            return
+        }
+        
+        let request = CreateVolunteerRequest(
+            title: createTitle,
+            description: createContent,
+            latitude: userLocation.coordinate.latitude,
+            longitude: userLocation.coordinate.longitude,
+            startDateTime: startDateTime.toISO8601String(),
+            endDateTime: endDateTime.toISO8601String(),
+            maxParticipants: maxParticipants,
+            visibilityType: isPublicRecruitment ? "PUBLIC" : "PRIVATE",
+            volunteerType: "GENERAL"
+        )
+        
+        Task {
+            let success = await networkService.createAndLoadVolunteer(request: request)
+            
+            if success {
+                await MainActor.run {
+                    withAnimation {
+                        showCreateVolunteerModal = false
+                        createTitle = ""
+                        createLocation = ""
+                        createStartTime = ""
+                        createEndTime = ""
+                        createParticipants = ""
+                        createContent = ""
+                        isPublicRecruitment = false
+                    }
+                }
+            }
+        }
     }
     
     private var mapViewBackground: some View {
@@ -605,7 +676,6 @@ struct VolunteerDetailView: View {
     }
     
     private func getDistanceText(_ volunteer: VolunteerData) -> String {
-        // 현재 지도 중심에서의 거리 계산
         let centerLocation = CLLocation(latitude: region.center.latitude, longitude: region.center.longitude)
         let volunteerLocation = CLLocation(latitude: volunteer.latitude, longitude: volunteer.longitude)
         let distance = centerLocation.distance(from: volunteerLocation)
@@ -787,7 +857,6 @@ struct VolunteerDetailView: View {
         }
     }
     
-    // MARK: - Ranking Bottom Sheet
     private var rankingBottomSheet: some View {
         ScrollView {
             VStack(spacing: 10) {
@@ -848,7 +917,6 @@ struct VolunteerDetailView: View {
         .padding(.horizontal, 10)
     }
     
-    // MARK: - My Page Bottom Sheet
     private var myPageBottomSheet: some View {
         ScrollView {
             VStack(spacing: 10) {
@@ -1057,7 +1125,6 @@ struct VolunteerDetailView: View {
         .cornerRadius(22)
     }
     
-    // MARK: - Create Volunteer Bottom Sheet
     private var createVolunteerBottomSheet: some View {
         ScrollView {
             VStack(spacing: 10) {
@@ -1126,7 +1193,7 @@ struct VolunteerDetailView: View {
                     HStack(spacing: 19) {
                         TextField("", text: $createStartTime)
                             .placeholder(when: createStartTime.isEmpty, placeholder: {
-                                Text("시작 시간")
+                                Text("시작 시간 (14:00)")
                                     .font(.system(size: 10))
                                     .foregroundColor(Color(hex: "A1A1A1"))
                             })
@@ -1140,7 +1207,7 @@ struct VolunteerDetailView: View {
                         
                         TextField("", text: $createEndTime)
                             .placeholder(when: createEndTime.isEmpty, placeholder: {
-                                Text("종료 시간")
+                                Text("종료 시간 (16:00)")
                                     .font(.system(size: 10))
                                     .foregroundColor(Color(hex: "A1A1A1"))
                             })
@@ -1168,6 +1235,7 @@ struct VolunteerDetailView: View {
                         .cornerRadius(16)
                         .padding(.horizontal, 10)
                         .focused($isTextFieldFocused)
+                        .keyboardType(.numberPad)
                 }
                 .padding(.vertical, 15)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1233,9 +1301,7 @@ struct VolunteerDetailView: View {
                     }
                     
                     Button(action: {
-                        withAnimation {
-                            showCreateVolunteerModal = false
-                        }
+                        submitVolunteerCreation()
                     }) {
                         Text("모집하기")
                             .font(.system(size: 16))
@@ -1285,7 +1351,6 @@ struct VolunteerDetailView: View {
         .padding(.horizontal, 10)
     }
     
-    // MARK: - Verification Complete Modal
     private var verificationCompleteModal: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 12) {
@@ -1389,7 +1454,7 @@ struct VolunteerDetailView: View {
     }
 }
 
-// MARK: - Supporting Views and Extensions
+// MARK: - Supporting Views
 struct LoadingView: View {
     var body: some View {
         ZStack {

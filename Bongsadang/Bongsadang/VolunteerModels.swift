@@ -15,6 +15,19 @@ struct NearbyVolunteersRequest: Codable {
     let radiusKm: Double
 }
 
+// MARK: - Create Volunteer Request
+struct CreateVolunteerRequest: Codable {
+    let title: String
+    let description: String
+    let latitude: Double
+    let longitude: Double
+    let startDateTime: String  // ISO8601 format: "2025-11-06T14:30:00Z"
+    let endDateTime: String    // ISO8601 format: "2025-11-06T16:30:00Z"
+    let maxParticipants: Int
+    let visibilityType: String  // "PUBLIC" or "PRIVATE"
+    let volunteerType: String   // "PLOGGING", "DELIVERY", etc.
+}
+
 struct VolunteerData: Codable, Identifiable, Equatable {
     let id: Int
     let organizerId: Int
@@ -81,5 +94,23 @@ struct VolunteerLocation: Identifiable, Equatable {
     
     static func == (lhs: VolunteerLocation, rhs: VolunteerLocation) -> Bool {
         lhs.id == rhs.id && lhs.coordinate == rhs.coordinate
+    }
+}
+
+// MARK: - Helper Extensions
+extension DateFormatter {
+    static let iso8601Full: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        return formatter
+    }()
+}
+
+extension Date {
+    func toISO8601String() -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: self)
     }
 }
