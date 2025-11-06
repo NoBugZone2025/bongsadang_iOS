@@ -21,20 +21,27 @@ class LoginViewModel: ObservableObject {
     
     func login() async {
         print("[LoginViewModel] 로그인 시도: email=\(email)")
+        
         do {
             let tokenData = try await authUseCase.login(email: email, password: password)
-            print("[LoginViewModel] 로그인 성공, accessToken=\(tokenData.accessToken), refreshToken=\(tokenData.refreshToken)")
+            print("[LoginViewModel] 로그인 성공")
+            print("accessToken = \(tokenData.accessToken)")
+            print("refreshToken = \(tokenData.refreshToken)")
             
-            if isKeepLoggedIn {
-                KeychainHelper.shared.save(value: tokenData.accessToken, forKey: "accessToken")
-                KeychainHelper.shared.save(value: tokenData.refreshToken, forKey: "refreshToken")
-                print("[LoginViewModel] 토큰 Keychain 저장 완료")
-            }
-            
+            KeychainHelper.shared.save(value: tokenData.accessToken, forKey: "accessToken")
+            KeychainHelper.shared.save(value: tokenData.refreshToken, forKey: "refreshToken")
+            print("[Keychain] 토큰 저장 완료")
+
+            let savedAccess = KeychainHelper.shared.read(forKey: "accessToken") ?? "nil"
+            let savedRefresh = KeychainHelper.shared.read(forKey: "refreshToken") ?? "nil"
+            print("[Keychain] 저장 확인 accessToken:", savedAccess)
+            print("[Keychain] 저장 확인 refreshToken:", savedRefresh)
+
             isLoggedIn = true
             loginError = nil
+            
         } catch {
-            loginError = "로그인 실패: \(error.localizedDescription)"
+            loginError = "로그인 실패"
             isLoggedIn = false
             print("[LoginViewModel] 로그인 실패: \(error)")
         }
@@ -48,13 +55,15 @@ class LoginViewModel: ObservableObject {
     func checkSavedToken() {
         let access = KeychainHelper.shared.read(forKey: "accessToken")
         let refresh = KeychainHelper.shared.read(forKey: "refreshToken")
+        
         if let access = access, let refresh = refresh {
             isLoggedIn = true
-            print("[LoginViewModel] Keychain 토큰 발견: accessToken=\(access), refreshToken=\(refresh)")
+            print("[LoginViewModel] 저장된 토큰 감지 → 자동 로그인")
+            print("accessToken =", access)
+            print("refreshToken =", refresh)
         } else {
             isLoggedIn = false
-            print("[LoginViewModel] Keychain 토큰 없음")
+            print("[LoginViewModel] 저장된 토큰 없음 → 로그인 필요")
         }
     }
 }
-
