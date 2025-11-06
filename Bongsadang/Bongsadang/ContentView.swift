@@ -555,17 +555,24 @@ struct VolunteerDetailView: View {
     
     private var bottomTabBar: some View {
         HStack(spacing: 0) {
-            tabBarItem(icon: "house", isSelected: false)
+            tabBarItem(icon: "house", isSelected: !showRankingModal && !showMyPageModal, action: {
+                withAnimation {
+                    showRankingModal = false
+                    showMyPageModal = false
+                }
+            })
             tabBarItem(icon: "bag", isSelected: false)
             Spacer()
                 .frame(width: 80)
             tabBarItem(icon: "chart.bar.fill", isSelected: showRankingModal, action: {
                 withAnimation {
+                    showMyPageModal = false
                     showRankingModal.toggle()
                 }
             })
             tabBarItem(icon: "person", isSelected: showMyPageModal, action: {
                 withAnimation {
+                    showRankingModal = false
                     showMyPageModal.toggle()
                 }
             })
