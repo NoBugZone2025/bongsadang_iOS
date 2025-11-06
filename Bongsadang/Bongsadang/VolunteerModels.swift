@@ -29,6 +29,41 @@ struct CreateVolunteerRequest: Codable {
     let volunteerType: String   // "PLOGGING", "DELIVERY", etc.
 }
 
+
+// MARK: - User Info Model
+struct UserInfo: Codable {
+    let email: String
+    let name: String
+    let totalPoints: Int
+    let rank: Int
+    
+    var role: String {
+        getRankTitle(from: rank)
+    }
+    
+    var formattedPoints: String {
+        return "\(totalPoints)P"
+    }
+    
+    // 랭크에 따른 칭호 반환
+    private func getRankTitle(from rank: Int) -> String {
+        switch rank {
+        case 1:
+            return "🥇 최고 봉사자"
+        case 2:
+            return "🥈 우수 봉사자"
+        case 3:
+            return "🥉 모범 봉사자"
+        case 4...10:
+            return "⭐️ 열정 봉사자"
+        case 11...50:
+            return "🌟 활동 봉사자"
+        default:
+            return "🌱 새싹 봉사자"
+        }
+    }
+}
+
 struct VolunteerData: Codable, Identifiable, Equatable {
     let id: Int
     let organizerId: Int

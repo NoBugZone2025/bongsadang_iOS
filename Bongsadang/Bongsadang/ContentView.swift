@@ -985,9 +985,9 @@ struct VolunteerDetailView: View {
     
     private var myProfileCard: some View {
         HStack(spacing: 12) {
-            Text("22.")
+            Text("\(networkService.userInfo?.rank ?? 0).")
                 .font(.system(size: 24, weight: .semibold))
-                .foregroundColor(.black)
+                .foregroundColor(getRankColor(networkService.userInfo?.rank ?? 0))
                 .frame(width: 40, alignment: .leading)
             
             Circle()
@@ -1007,14 +1007,14 @@ struct VolunteerDetailView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(Color(hex: "8B4513"))
                 
-                Text("서울시 은평구")
+                Text(networkService.userInfo?.email ?? "이메일")
                     .font(.system(size: 13, weight: .light))
                     .foregroundColor(Color(hex: "8B4513"))
             }
             
             Spacer()
             
-            Text("223P")
+            Text(networkService.userInfo?.formattedPoints ?? "0P")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(Color(hex: "8B4513"))
         }
@@ -1023,6 +1023,20 @@ struct VolunteerDetailView: View {
         .background(Color(hex: "FFF7F0"))
         .cornerRadius(24)
         .padding(.horizontal, 10)
+    }
+
+    // 랭크 색상 반환 헬퍼 함수 추가
+    private func getRankColor(_ rank: Int) -> Color {
+        switch rank {
+        case 1:
+            return .gold
+        case 2:
+            return .silver
+        case 3:
+            return .bronze
+        default:
+            return .black
+        }
     }
     
     private var friendsManagementCard: some View {
