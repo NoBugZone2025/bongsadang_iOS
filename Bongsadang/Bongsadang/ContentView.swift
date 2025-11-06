@@ -274,6 +274,13 @@ struct VolunteerDetailView: View {
                 }
             }
         }
+        .onChange(of: showMyPageModal) { newValue in
+            if newValue {
+                Task {
+                    await networkService.loadUserInfo()
+                }
+            }
+        }
         .onDisappear {
             stopTimer()
         }
@@ -992,15 +999,13 @@ struct VolunteerDetailView: View {
                 )
             
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text("UserK")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color(hex: "8B4513"))
-                    
-                    Text("칭호")
-                        .font(.system(size: 13, weight: .light))
-                        .foregroundColor(Color(hex: "8B4513"))
-                }
+                Text(networkService.userInfo?.role ?? "역할")
+                    .font(.system(size: 13, weight: .light))
+                    .foregroundColor(Color(hex: "8B4513"))
+                
+                Text(networkService.userInfo?.name ?? "사용자")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(Color(hex: "8B4513"))
                 
                 Text("서울시 은평구")
                     .font(.system(size: 13, weight: .light))

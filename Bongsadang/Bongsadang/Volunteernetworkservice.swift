@@ -17,6 +17,7 @@ class VolunteerNetworkService: ObservableObject {
     
     @Published var volunteers: [VolunteerData] = []
     @Published var rankings: [RankingUser] = []
+    @Published var userInfo: UserInfo?
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     
@@ -88,6 +89,85 @@ class VolunteerNetworkService: ObservableObject {
         let prefix = token.prefix(10)
         let suffix = token.suffix(10)
         return "\(prefix)...\(suffix)"
+    }
+    
+    // MARK: - Fetch User Info
+    func fetchUserInfo() async throws -> UserInfo {
+        guard let url = URL(string: "\(baseURL)/users/me") else {
+            throw NetworkError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        logRequest(request)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        logResponse(response, data: data, error: nil)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 401 {
+                throw NetworkError.unauthorized
+            }
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("🔴 Error Response: \(errorString)")
+                throw NetworkError.serverError(errorString)
+            }
+            throw NetworkError.serverError("Status code: \(httpResponse.statusCode)")
+        }
+        
+        do {
+            let apiResponse = try JSONDecoder().decode(APIResponse<UserInfo>.self, from: data)
+            print("✅ Successfully fetched user info: \(apiResponse.data.name)")
+            return apiResponse.data
+        } catch {
+            print("🔴 Decoding error: \(error)")
+            throw NetworkError.decodingError
+        }
+    }
+    
+    @MainActor
+    func loadUserInfo() async {
+        isLoading = true
+        errorMessage = nil
+        
+        print("👤 Loading user info...")
+        
+        do {
+            let fetchedUserInfo = try await fetchUserInfo()
+            self.userInfo = fetchedUserInfo
+            print("✅ Loaded user info successfully: \(fetchedUserInfo.name)")
+        } catch let error as NetworkError {
+            switch error {
+            case .invalidURL:
+                self.errorMessage = "잘못된 URL입니다."
+                print("🔴 Invalid URL")
+            case .invalidResponse:
+                self.errorMessage = "서버 응답이 올바르지 않습니다."
+                print("🔴 Invalid Response")
+            case .decodingError:
+                self.errorMessage = "데이터 처리 중 오류가 발생했습니다."
+                print("🔴 Decoding Error")
+            case .serverError(let message):
+                self.errorMessage = "서버 오류: \(message)"
+                print("🔴 Server Error: \(message)")
+            case .unauthorized:
+                self.errorMessage = "인증에 실패했습니다."
+                print("🔴 Unauthorized")
+            }
+        } catch {
+            self.errorMessage = "알 수 없는 오류가 발생했습니다: \(error.localizedDescription)"
+            print("🔴 Unknown Error: \(error.localizedDescription)")
+        }
+        
+        isLoading = false
     }
     
     // MARK: - Fetch Rankings
