@@ -5,7 +5,7 @@ import Combine
 
 struct VolunteerDetailView: View {
     @ObservedObject var loginViewModel: LoginViewModel
-    @State private var searchText: String = ""
+    @State private var searchText: String = "";
     @FocusState private var isSearchFocused: Bool
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780),
@@ -26,9 +26,20 @@ struct VolunteerDetailView: View {
     @State private var showVerificationComplete: Bool = false
     @State private var showCreateVolunteerModal: Bool = false
 
-
     @State private var showRecenterButton: Bool = false
     @State private var isMapDragging: Bool = false
+
+    // 검색 결과
+    var filteredVolunteers: [VolunteerData] {
+        if searchText.isEmpty {
+            return []
+        }
+        return networkService.volunteers.filter { volunteer in
+            volunteer.title.localizedCaseInsensitiveContains(searchText) ||
+            volunteer.description.localizedCaseInsensitiveContains(searchText) ||
+            volunteer.organizerName.localizedCaseInsensitiveContains(searchText)
+        }
+    }
     
     let startTime: Date = Date()
     
@@ -64,7 +75,19 @@ struct VolunteerDetailView: View {
             VStack(spacing: 0) {
                 TopNavigationBar()
                 SearchBarView(searchText: $searchText, isSearchFocused: $isSearchFocused)
-                
+
+                // 검색 결과 리스트
+                if !searchText.isEmpty && !filteredVolunteers.isEmpty {
+                    SearchResultsListView(
+                        volunteers: filteredVolunteers,
+                        onSelectVolunteer: { volunteer in
+                            selectVolunteerFromSearch(volunteer)
+                        }
+                    )
+                    .padding(.horizontal, 10)
+                    .padding(.top, 9)
+                }
+
                 if isParticipating {
                     ActiveVolunteerCardView(currentParticipatingVolunteer: $currentParticipatingVolunteer, elapsedTime: $elapsedTime, totalDuration: totalDuration, showImagePicker: $showImagePicker)
                         .padding(.horizontal, 10)
@@ -73,7 +96,7 @@ struct VolunteerDetailView: View {
                             isSearchFocused = false
                         }
                 }
-                
+
                 Spacer()
             }
             
@@ -254,6 +277,7 @@ struct VolunteerDetailView: View {
         .onAppear {
             centerMapOnUserLocation()
             loadVolunteersAtCurrentLocation()
+            checkParticipatingVolunteer()
         }
         .onChange(of: region.center) { newCenter in
             checkIfMapMovedFromUserLocation(newCenter)
@@ -383,10 +407,10 @@ struct VolunteerDetailView: View {
     
     private func startParticipation() {
         guard let location = selectedLocation else { return }
-        
+
         Task {
             let volunteer = await networkService.participateAndStartActivity(volunteerId: location.id)
-            
+
             if let volunteer = volunteer {
                 await MainActor.run {
                     currentParticipatingVolunteer = volunteer
@@ -397,10 +421,54 @@ struct VolunteerDetailView: View {
             }
         }
     }
-    
-    
-    
 
-    
+    private func checkParticipatingVolunteer() {
+        Task {
+            do {
+                if let participating = try await networkService.fetchParticipatingVolunteer() {
+                    // verified가 true인 경우만 진행 중으로 처리
+                    if participating.verified == true {
+                        await MainActor.run {
+                            currentParticipatingVolunteer = participating
+                            isParticipating = true
+
+                            // 시작 시간부터 현재까지의 경과 시간 계산
+                            if let startDate = parseDateTime(participating.startDateTime) {
+                                elapsedTime = Date().timeIntervalSince(startDate)
+                            }
+
+                            startTimer()
+                            print("✅ Resumed participating volunteer: \(participating.title)")
+                        }
+                    }
+                }
+            } catch {
+                print("🔴 Failed to check participating volunteer: \(error)")
+            }
+        }
+    }
+
+    private func parseDateTime(_ dateString: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds, .withTimeZone]
+        return formatter.date(from: dateString)
+    }
+
+    private func selectVolunteerFromSearch(_ volunteer: VolunteerData) {
+        // 검색어 초기화 및 포커스 해제
+        searchText = ""
+        isSearchFocused = false
+
+        // 지도 중심을 해당 봉사활동 위치로 이동
+        withAnimation {
+            region.center = volunteer.coordinate
+        }
+
+        // 해당 위치의 VolunteerLocation 찾기
+        if let location = volunteerLocations.first(where: { $0.volunteerData.id == volunteer.id }) {
+            selectedLocation = location
+        }
+    }
 
 }
+

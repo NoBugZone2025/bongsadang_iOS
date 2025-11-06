@@ -655,6 +655,61 @@ class VolunteerNetworkService: ObservableObject {
         }
     }
     
+    // MARK: - Fetch Participating Volunteer
+    func fetchParticipatingVolunteer() async throws -> VolunteerData? {
+        guard let url = URL(string: "\(APIConfig.baseURL)/volunteers/participating") else {
+            throw NetworkError.invalidURL
+        }
+
+        guard let accessToken = getAccessToken() else {
+            throw NetworkError.unauthorized
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        logRequest(request)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        logResponse(response, data: data, error: nil)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 404 {
+                // 참여 중인 봉사활동이 없음
+                return nil
+            }
+            throw NetworkError.serverError("Status code: \(httpResponse.statusCode)")
+        }
+
+        let apiResponse = try JSONDecoder().decode(APIResponse<VolunteerData>.self, from: data)
+        return apiResponse.data
+    }
+
+    @MainActor
+    func loadParticipatingVolunteer() async {
+        do {
+            if let participating = try await fetchParticipatingVolunteer() {
+                print("✅ Found participating volunteer: \(participating.title)")
+                print("   Verified: \(participating.verified ?? false)")
+                // verified가 true인 경우만 진행 중으로 처리
+                if participating.verified == true {
+                    // TODO: 타이머 시작 및 UI 업데이트는 ContentView에서 처리
+                }
+            } else {
+                print("ℹ️ No participating volunteer found")
+            }
+        } catch {
+            print("🔴 Failed to load participating volunteer: \(error)")
+        }
+    }
+
     @MainActor
     func createAndLoadVolunteer(request: CreateVolunteerRequest) async -> Bool {
         isLoading = true
