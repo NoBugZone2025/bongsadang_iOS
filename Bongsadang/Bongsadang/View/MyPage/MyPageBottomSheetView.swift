@@ -8,7 +8,6 @@ struct MyPageBottomSheetView: View {
         ScrollView {
             VStack(spacing: 10) {
                 MyProfileCardView(networkService: networkService)
-                FriendsManagementCardView()
                 MyVolunteerRecordsCardView()
             }
             .padding(.top, 10)
