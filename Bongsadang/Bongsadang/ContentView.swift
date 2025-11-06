@@ -20,6 +20,7 @@ struct VolunteerDetailView: View {
     @State private var showImagePicker: Bool = false
     @State private var selectedImage: UIImage?
     @State private var showVerificationComplete: Bool = false
+    @State private var showCreateVolunteerModal: Bool = false
     
     let startTime: Date = Date()
     
@@ -165,6 +166,28 @@ struct VolunteerDetailView: View {
                 verificationCompleteModal
             }
             
+            // Create Volunteer Modal
+            if showCreateVolunteerModal {
+                VStack(spacing: 0) {
+                    Spacer()
+                        .frame(height: 58 + 44 + 9 + 9) // topNav + searchBar + spacing
+                    
+                    createVolunteerBottomSheet
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 97) // 84 (tabBar) + 13 (spacing above tabBar)
+                }
+                .background(
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation {
+                                showCreateVolunteerModal = false
+                            }
+                        }
+                )
+                .transition(.opacity)
+            }
+            
             bottomTabBar
             VStack {
                 Spacer()
@@ -178,6 +201,7 @@ struct VolunteerDetailView: View {
         .animation(.easeInOut, value: showRankingModal)
         .animation(.easeInOut, value: showMyPageModal)
         .animation(.easeInOut, value: showVerificationComplete)
+        .animation(.easeInOut, value: showCreateVolunteerModal)
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage, onImageSelected: {
                 showImagePicker = false
@@ -556,7 +580,11 @@ struct VolunteerDetailView: View {
         )
     }
     private var floatingActionButton: some View {
-        Button(action: {}) {
+        Button(action: {
+            withAnimation {
+                showCreateVolunteerModal.toggle()
+            }
+        }) {
             Image(systemName: "plus")
                 .font(.system(size: 24, weight: .medium))
                 .foregroundColor(.white)
@@ -909,6 +937,228 @@ struct VolunteerDetailView: View {
         .cornerRadius(22)
     }
     
+    
+    // MARK: - Create Volunteer Bottom Sheet
+    private var createVolunteerBottomSheet: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                // Title Section
+                createFormSection(title: "제목") {
+                    TextField("", text: .constant(""))
+                        .placeholder(when: true, placeholder: {
+                            Text("제목을 입력하세요...")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "A1A1A1"))
+                        })
+                        .font(.system(size: 10))
+                        .padding(.horizontal, 16)
+                        .frame(height: 37)
+                        .background(Color.white)
+                        .cornerRadius(16)
+                }
+                
+                // Location Section
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("위치")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color(hex: "8B4513"))
+                        
+                        Spacer()
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "A1A1A1"))
+                            Text("현위치")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "A1A1A1"))
+                        }
+                    }
+                    .padding(.horizontal, 19)
+                    
+                    TextField("", text: .constant(""))
+                        .placeholder(when: true, placeholder: {
+                            Text("서울특별시 종로구 XXX")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "A1A1A1"))
+                        })
+                        .font(.system(size: 10))
+                        .padding(.horizontal, 16)
+                        .frame(height: 37)
+                        .background(Color.white)
+                        .cornerRadius(16)
+                        .padding(.horizontal, 14)
+                }
+                .padding(.vertical, 15)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(hex: "FFF7F0"))
+                .cornerRadius(24)
+                .padding(.horizontal, 10)
+                
+                // Schedule and Participants Section
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("일정 및 모집인원")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(hex: "8B4513"))
+                        .padding(.horizontal, 19)
+                    
+                    HStack(spacing: 19) {
+                        TextField("", text: .constant(""))
+                            .placeholder(when: true, placeholder: {
+                                Text("시작 시간")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(Color(hex: "A1A1A1"))
+                            })
+                            .font(.system(size: 10))
+                            .padding(.horizontal, 16)
+                            .frame(height: 37)
+                            .background(Color.white)
+                            .cornerRadius(16)
+                        
+                        TextField("", text: .constant(""))
+                            .placeholder(when: true, placeholder: {
+                                Text("종료 시간")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(Color(hex: "A1A1A1"))
+                            })
+                            .font(.system(size: 10))
+                            .padding(.horizontal, 16)
+                            .frame(height: 37)
+                            .background(Color.white)
+                            .cornerRadius(16)
+                    }
+                    .padding(.horizontal, 10)
+                    
+                    TextField("", text: .constant(""))
+                        .placeholder(when: true, placeholder: {
+                            Text("모집 인원")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "A1A1A1"))
+                        })
+                        .font(.system(size: 10))
+                        .padding(.horizontal, 16)
+                        .frame(height: 37)
+                        .background(Color.white)
+                        .cornerRadius(16)
+                        .padding(.horizontal, 10)
+                }
+                .padding(.vertical, 15)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(hex: "FFF7F0"))
+                .cornerRadius(24)
+                .padding(.horizontal, 10)
+                
+                // Content Section
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("내용")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(hex: "8B4513"))
+                        .padding(.horizontal, 19)
+                    
+                    ZStack(alignment: .topLeading) {
+                        if true { // placeholder condition
+                            Text("내용을 입력하세요...")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(hex: "A1A1A1"))
+                                .padding(.horizontal, 16)
+                                .padding(.top, 11)
+                        }
+                        
+                        TextEditor(text: .constant(""))
+                            .font(.system(size: 10))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .frame(height: 106)
+                            .background(Color.white)
+                            .cornerRadius(16)
+                            .scrollContentBackground(.hidden)
+                    }
+                    .padding(.horizontal, 14)
+                }
+                .padding(.vertical, 15)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(hex: "FFF7F0"))
+                .cornerRadius(24)
+                .padding(.horizontal, 10)
+                
+                // Public Recruitment Toggle
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(Color(hex: "A1A1A1"))
+                    Text("공개 모집")
+                        .font(.system(size: 10))
+                        .foregroundColor(Color(hex: "A1A1A1"))
+                }
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Action Buttons
+                HStack(spacing: 30) {
+                    Button(action: {
+                        withAnimation {
+                            showCreateVolunteerModal = false
+                        }
+                    }) {
+                        Text("돌아가기")
+                            .font(.system(size: 16))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Color(hex: "A1A1A1"))
+                            .cornerRadius(28)
+                    }
+                    
+                    Button(action: {
+                        withAnimation {
+                            showCreateVolunteerModal = false
+                        }
+                    }) {
+                        Text("모집하기")
+                            .font(.system(size: 16))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(28)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.top, 10)
+            }
+            .padding(.top, 10)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 32)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
+        )
+    }
+    
+    private func createFormSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(hex: "8B4513"))
+                .padding(.horizontal, 19)
+            
+            content()
+                .padding(.horizontal, 14)
+        }
+        .padding(.vertical, 15)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(hex: "FFF7F0"))
+        .cornerRadius(24)
+        .padding(.horizontal, 10)
+    }
+    
     // MARK: - Verification Complete Modal
     private var verificationCompleteModal: some View {
         VStack(spacing: 0) {
@@ -1100,6 +1350,20 @@ extension Color {
 struct VolunteerDetailView_Previews: PreviewProvider {
     static var previews: some View {
         VolunteerDetailView()
+    }
+}
+
+// MARK: - View Extensions
+extension View {
+    func placeholder<Content: View>(
+        when shouldShow: Bool,
+        alignment: Alignment = .leading,
+        @ViewBuilder placeholder: () -> Content
+    ) -> some View {
+        ZStack(alignment: alignment) {
+            placeholder().opacity(shouldShow ? 1 : 0)
+            self
+        }
     }
 }
 
