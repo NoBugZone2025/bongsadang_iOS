@@ -21,11 +21,11 @@ struct SplashView: View {
                             .scaledToFit()
                             .frame(width: 250, height: 250)
                         
-                        Text("봉사당")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .padding(.top, 20)
+//                        Text("봉사당")
+//                            .font(.largeTitle)
+//                            .fontWeight(.bold)
+//                            .foregroundColor(.white)
+//                            .padding(.top, 20)
                     }
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
