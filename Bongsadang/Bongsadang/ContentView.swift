@@ -330,13 +330,44 @@ struct VolunteerDetailView: View {
         }
     }
     
+    // ⭐️ 이 함수를 VolunteerDetailView 안에 추가하세요
     private func updateVolunteerLocations(_ volunteers: [VolunteerData]) {
-        volunteerLocations = volunteers.map { volunteer in
-            VolunteerLocation(
-                id: volunteer.id,
-                coordinate: volunteer.coordinate,
-                volunteerData: volunteer
-            )
+        // 좌표별로 그룹화
+        var coordinateGroups: [String: [VolunteerData]] = [:]
+        
+        for volunteer in volunteers {
+            let key = "\(volunteer.latitude),\(volunteer.longitude)"
+            if coordinateGroups[key] == nil {
+                coordinateGroups[key] = []
+            }
+            coordinateGroups[key]?.append(volunteer)
+        }
+        
+        // 위치 분산 적용
+        volunteerLocations = volunteers.enumerated().map { index, volunteer in
+            let key = "\(volunteer.latitude),\(volunteer.longitude)"
+            let group = coordinateGroups[key] ?? []
+            
+            // 같은 좌표에 여러 개가 있으면 위치 분산
+            if group.count > 1, let groupIndex = group.firstIndex(where: { $0.id == volunteer.id }) {
+                let offset = Double(groupIndex) * 0.0001 // 약 11m 간격
+                let adjustedCoordinate = CLLocationCoordinate2D(
+                    latitude: volunteer.latitude + offset,
+                    longitude: volunteer.longitude + offset
+                )
+                return VolunteerLocation(
+                    id: volunteer.id,
+                    coordinate: adjustedCoordinate,
+                    volunteerData: volunteer
+                )
+            } else {
+                // 단독이면 원래 위치 사용
+                return VolunteerLocation(
+                    id: volunteer.id,
+                    coordinate: volunteer.coordinate,
+                    volunteerData: volunteer
+                )
+            }
         }
     }
     
