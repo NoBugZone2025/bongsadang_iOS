@@ -603,7 +603,6 @@ struct VolunteerDetailView: View {
                 .foregroundColor(.white)
         }
     }
-    
     private var volunteerDetailCard: some View {
         VStack(spacing: 10) {
             if let location = selectedLocation {
@@ -617,6 +616,7 @@ struct VolunteerDetailView: View {
                         
                         Spacer()
                         
+                        // ✅ 수정: formattedStartDate 사용
                         Text(volunteer.formattedStartDate)
                             .font(.system(size: 13))
                             .foregroundColor(Color(hex: "A0522D"))
@@ -655,6 +655,7 @@ struct VolunteerDetailView: View {
                             Image(systemName: "clock.fill")
                                 .font(.system(size: 14))
                                 .foregroundColor(Color(hex: "8B4513"))
+                            // ✅ 수정: formattedTimeRange 사용
                             Text(volunteer.formattedTimeRange)
                                 .font(.system(size: 13))
                                 .foregroundColor(Color(hex: "A0522D"))

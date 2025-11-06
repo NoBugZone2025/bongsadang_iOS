@@ -54,34 +54,47 @@ struct VolunteerData: Codable, Identifiable, Equatable {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
     
+    // ✅ 날짜만 표시 (2025.11.07)
     var formattedStartDate: String {
-        formatDate(startDateTime)
+        return formatDateOnly(startDateTime)
     }
     
+    // ✅ 시간 범위 표시 (14:00-16:00)
     var formattedTimeRange: String {
-        let start = formatTime(startDateTime)
-        let end = formatTime(endDateTime)
+        let start = formatTimeOnly(startDateTime)
+        let end = formatTimeOnly(endDateTime)
         return "\(start)-\(end)"
     }
     
-    private func formatDate(_ dateString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        guard let date = formatter.date(from: dateString) else { return dateString }
+    // 날짜만 추출 (2025.11.07)
+    private func formatDateOnly(_ dateString: String) -> String {
+        // "2025-11-07T02:41:06" 형식에서 날짜 부분만 추출
+        let components = dateString.split(separator: "T")
+        guard let datePart = components.first else { return dateString }
         
-        let displayFormatter = DateFormatter()
-        displayFormatter.dateFormat = "yyyy.MM.dd"
-        displayFormatter.timeZone = TimeZone(identifier: "Asia/Seoul")
-        return displayFormatter.string(from: date)
+        let dateComponents = datePart.split(separator: "-")
+        guard dateComponents.count == 3 else { return dateString }
+        
+        return "\(dateComponents[0]).\(dateComponents[1]).\(dateComponents[2])"
     }
     
-    private func formatTime(_ dateString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        guard let date = formatter.date(from: dateString) else { return dateString }
+    // 시간만 추출 (14:00)
+    private func formatTimeOnly(_ dateString: String) -> String {
+        // "2025-11-07T02:41:06" 형식에서 시간 부분만 추출
+        let components = dateString.split(separator: "T")
+        guard components.count == 2 else { return dateString }
         
-        let displayFormatter = DateFormatter()
-        displayFormatter.dateFormat = "HH:mm"
-        displayFormatter.timeZone = TimeZone(identifier: "Asia/Seoul")
-        return displayFormatter.string(from: date)
+        let timePart = String(components[1])
+        let timeComponents = timePart.split(separator: ":")
+        guard timeComponents.count >= 2 else { return dateString }
+        
+        // 시간 변환 (UTC+0 → UTC+9)
+        if let hour = Int(timeComponents[0]) {
+            let kstHour = (hour + 9) % 24
+            return String(format: "%02d:%@", kstHour, timeComponents[1] as CVarArg)
+        }
+        
+        return "\(timeComponents[0]):\(timeComponents[1])"
     }
 }
 
