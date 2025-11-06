@@ -177,40 +177,38 @@ struct CreateVolunteerBottomSheetView: View {
                 .padding(.horizontal, 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                HStack(spacing: 30) {
+                HStack(spacing: 12) {
                     Button(action: {
                         withAnimation {
                             showCreateVolunteerModal = false
                         }
                     }) {
                         Text("돌아가기")
+                            .bold()
                             .font(.system(size: 16))
-                            .foregroundColor(.white)
+                            .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
-                            .background(Color(hex: "A1A1A1"))
-                            .cornerRadius(28)
+                            .background(Color(hex: "#D6D6D6"))
+                            .cornerRadius(16)
                     }
 
                     Button(action: {
                         submitVolunteerCreation()
                     }) {
                         Text("모집하기")
+                            .bold()
                             .font(.system(size: 16))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
                             .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
+                                Color(hex: "#F6AD55")
                             )
-                            .cornerRadius(28)
+                            .cornerRadius(16)
                     }
                 }
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 15)
                 .padding(.top, 10)
                 .padding(.bottom, 20)
             }
