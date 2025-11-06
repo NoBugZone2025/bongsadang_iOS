@@ -244,8 +244,8 @@ struct CreateVolunteerBottomSheetView: View {
         )
         .sheet(isPresented: $showLocationPicker) {
             LocationPickerView(
-                selectedLocation: $selectedLocation,
-                initialLocation: locationManager.userLocation?.coordinate
+                locationManager: locationManager,
+                selectedLocation: $selectedLocation
             )
         }
     }

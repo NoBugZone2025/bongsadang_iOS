@@ -111,7 +111,7 @@ struct LoginView: View {
                 }
             }
             .fullScreenCover(isPresented: $vm.isLoggedIn) {
-                VolunteerDetailView()
+                VolunteerDetailView(loginViewModel: vm)
             }
             
             .onAppear {

@@ -33,11 +33,9 @@ struct SignupResponse: Codable {
 }
 
 class AuthAPI {
-    static let baseURL = "https://mouse-loud-muscle-advanced.trycloudflare.com/"
-
     // 로그인
     static func login(email: String, password: String) async throws -> TokenData {
-        let url = URL(string: baseURL + "auth/login")!
+        let url = URL(string: APIConfig.baseURL + "/auth/login")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -61,7 +59,7 @@ class AuthAPI {
 
     // 회원가입
     static func signup(_ data: SignupRequest) async throws -> SignupResponse {
-        let url = URL(string: baseURL + "auth/register")!
+        let url = URL(string: APIConfig.baseURL + "/auth/register")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

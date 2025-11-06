@@ -9,7 +9,7 @@ import Foundation
 
 class AuthUseCase {
     func login(email: String, password: String) async throws -> LoginResponseData {
-        guard let url = URL(string: "https://mouse-loud-muscle-advanced.trycloudflare.com/auth/login") else {
+        guard let url = URL(string: "\(APIConfig.baseURL)/auth/login") else {
             throw URLError(.badURL)
         }
         

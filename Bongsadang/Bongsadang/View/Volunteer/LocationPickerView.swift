@@ -4,19 +4,22 @@ import MapKit
 
 struct LocationPickerView: View {
     @Environment(\.dismiss) var dismiss
+    @ObservedObject var locationManager: LocationManager
     @Binding var selectedLocation: CLLocationCoordinate2D?
     @State private var region: MKCoordinateRegion
     @State private var pinLocation: CLLocationCoordinate2D?
 
-    init(selectedLocation: Binding<CLLocationCoordinate2D?>, initialLocation: CLLocationCoordinate2D?) {
+    init(locationManager: LocationManager, selectedLocation: Binding<CLLocationCoordinate2D?>) {
+        self._locationManager = ObservedObject(wrappedValue: locationManager)
         self._selectedLocation = selectedLocation
 
-        let initialCoordinate = initialLocation ?? CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780) // 서울 기본값
+        // 현재 위치가 있으면 사용하고, 없으면 서울을 기본값으로
+        let initialCoordinate = locationManager.userLocation?.coordinate ?? CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.9780)
         self._region = State(initialValue: MKCoordinateRegion(
             center: initialCoordinate,
             span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
         ))
-        self._pinLocation = State(initialValue: initialLocation)
+        self._pinLocation = State(initialValue: locationManager.userLocation?.coordinate)
     }
 
     var body: some View {
@@ -33,6 +36,40 @@ struct LocationPickerView: View {
                 // 화면 좌표를 지도 좌표로 변환하는 간단한 방법
                 // 중앙 위치를 핀 위치로 설정
                 pinLocation = region.center
+            }
+
+            // 위치 권한이 없을 때 표시되는 오버레이
+            if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
+                VStack(spacing: 20) {
+                    Image(systemName: "location.slash.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(Color(hex: "F6AD55"))
+
+                    Text("위치 권한이 필요합니다")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.black)
+
+                    Text("설정에서 위치 권한을 허용해주세요")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+
+                    Button(action: {
+                        if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(settingsUrl)
+                        }
+                    }) {
+                        Text("설정으로 이동")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 30)
+                            .padding(.vertical, 12)
+                            .background(Color(hex: "F6AD55"))
+                            .cornerRadius(12)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.white.opacity(0.95))
             }
 
             // 중앙 십자선
@@ -98,6 +135,13 @@ struct LocationPickerView: View {
             }
         }
         .ignoresSafeArea()
+        .onAppear {
+            // 뷰가 나타날 때 현재 위치로 지도 이동
+            if let currentLocation = locationManager.userLocation?.coordinate {
+                region.center = currentLocation
+                pinLocation = currentLocation
+            }
+        }
         .onChange(of: region.center) { newCenter in
             pinLocation = newCenter
         }

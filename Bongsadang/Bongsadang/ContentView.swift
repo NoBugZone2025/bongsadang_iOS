@@ -4,6 +4,7 @@ import CoreLocation
 import Combine
 
 struct VolunteerDetailView: View {
+    @ObservedObject var loginViewModel: LoginViewModel
     @State private var searchText: String = ""
     @FocusState private var isSearchFocused: Bool
     @State private var region = MKCoordinateRegion(
@@ -25,7 +26,7 @@ struct VolunteerDetailView: View {
     @State private var showVerificationComplete: Bool = false
     @State private var showCreateVolunteerModal: Bool = false
 
-    
+
     @State private var showRecenterButton: Bool = false
     @State private var isMapDragging: Bool = false
     
@@ -169,8 +170,8 @@ struct VolunteerDetailView: View {
                 VStack(spacing: 0) {
                     Spacer()
                         .frame(height: 58 + 44 + 9 + 9)
-                    
-                    MyPageBottomSheetView(networkService: networkService)
+
+                    MyPageBottomSheetView(networkService: networkService, loginViewModel: loginViewModel)
                         .padding(.horizontal, 10)
                         .padding(.bottom, 97)
                 }
