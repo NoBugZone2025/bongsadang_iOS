@@ -11,7 +11,8 @@ import SwiftUI
 struct BongsadangApp: App {
     var body: some Scene {
         WindowGroup {
-            VolunteerDetailView()
+//            VolunteerDetailView()
+            SplashView()
         }
     }
 }
