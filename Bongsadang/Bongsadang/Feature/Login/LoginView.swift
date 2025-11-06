@@ -115,6 +115,7 @@ struct LoginView: View {
             }
             
             .onAppear {
+                vm.checkSavedToken()
             }
         }
         }
