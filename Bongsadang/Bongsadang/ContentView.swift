@@ -27,6 +27,7 @@ struct VolunteerDetailView: View {
     @State private var createEndTime: String = ""
     @State private var createParticipants: String = ""
     @State private var createContent: String = ""
+    @State private var isPublicRecruitment: Bool = false
     @FocusState private var isTextFieldFocused: Bool
     
     let startTime: Date = Date()
@@ -1101,14 +1102,12 @@ struct VolunteerDetailView: View {
                 .padding(.horizontal, 10)
                 
                 // Public Recruitment Toggle
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(Color(hex: "A1A1A1"))
+                Toggle(isOn: $isPublicRecruitment) {
                     Text("공개 모집")
                         .font(.system(size: 10))
                         .foregroundColor(Color(hex: "A1A1A1"))
                 }
+                .toggleStyle(SwitchToggleStyle(tint: Color(hex: "D2691E")))
                 .padding(.horizontal, 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 
@@ -1150,6 +1149,7 @@ struct VolunteerDetailView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.top, 10)
+                .padding(.bottom, 20)
             }
             .padding(.top, 10)
         }
