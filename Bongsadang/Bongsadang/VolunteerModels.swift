@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import SwiftUI
 
 // MARK: - API Response Models
 struct APIResponse<T: Codable>: Codable {
@@ -106,6 +107,34 @@ struct VolunteerLocation: Identifiable, Equatable {
     
     static func == (lhs: VolunteerLocation, rhs: VolunteerLocation) -> Bool {
         lhs.id == rhs.id && lhs.coordinate == rhs.coordinate
+    }
+}
+
+// MARK: - Ranking Models
+struct RankingUser: Codable, Identifiable {
+    let rank: Int
+    let userId: Int
+    let userName: String
+    let totalPoints: Int
+    let currentTitle: String?
+    
+    var id: Int { userId }
+    
+    var rankColor: Color {
+        switch rank {
+        case 1:
+            return .gold
+        case 2:
+            return .silver
+        case 3:
+            return .bronze
+        default:
+            return .black
+        }
+    }
+    
+    var formattedPoints: String {
+        return "\(totalPoints)P"
     }
 }
 

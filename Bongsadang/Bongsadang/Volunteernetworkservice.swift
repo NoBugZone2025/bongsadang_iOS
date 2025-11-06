@@ -16,6 +16,7 @@ class VolunteerNetworkService: ObservableObject {
     private let accessToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwiZW1haWwiOiJhc2RmIiwicm9sZSI6IlVTRVIiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzYyNDAzOTA2LCJleHAiOjM3NzYyNDAzOTA2fQ.VmZqX_n5kNOHyXKSXTN1rlDDR6ct7fxOgzTDj2Ku8FnuhVtuvTq-5cBlVf9Fju7y-ggkmgOlnlW_egCm0qPhLQ"
     
     @Published var volunteers: [VolunteerData] = []
+    @Published var rankings: [RankingUser] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     
@@ -51,7 +52,124 @@ class VolunteerNetworkService: ObservableObject {
         print("================================\n")
     }
     
+    private func logResponse(_ response: URLResponse?, data: Data?, error: Error?) {
+        print("🌐 ========== RESPONSE ==========")
+        
+        if let error = error {
+            print("🔴 Error: \(error.localizedDescription)")
+        }
+        
+        if let httpResponse = response as? HTTPURLResponse {
+            let statusEmoji = httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 ? "✅" : "❌"
+            print("\(statusEmoji) Status Code: \(httpResponse.statusCode)")
+            print("🔵 URL: \(httpResponse.url?.absoluteString ?? "nil")")
+            print("🔵 Headers:")
+            httpResponse.allHeaderFields.forEach { key, value in
+                print("   \(key): \(value)")
+            }
+        }
+        
+        if let data = data {
+            print("🔵 Response Data (\(data.count) bytes):")
+            if let jsonObject = try? JSONSerialization.jsonObject(with: data),
+               let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
+               let prettyString = String(data: prettyData, encoding: .utf8) {
+                print(prettyString)
+            } else if let responseString = String(data: data, encoding: .utf8) {
+                print(responseString)
+            }
+        }
+        
+        print("================================\n")
+    }
     
+    private func maskToken(_ token: String) -> String {
+        guard token.count > 20 else { return "***" }
+        let prefix = token.prefix(10)
+        let suffix = token.suffix(10)
+        return "\(prefix)...\(suffix)"
+    }
+    
+    // MARK: - Fetch Rankings
+    func fetchRankings() async throws -> [RankingUser] {
+        guard let url = URL(string: "\(baseURL)/ranking") else {
+            throw NetworkError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        logRequest(request)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        logResponse(response, data: data, error: nil)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 401 {
+                throw NetworkError.unauthorized
+            }
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("🔴 Error Response: \(errorString)")
+                throw NetworkError.serverError(errorString)
+            }
+            throw NetworkError.serverError("Status code: \(httpResponse.statusCode)")
+        }
+        
+        do {
+            let apiResponse = try JSONDecoder().decode(APIResponse<[RankingUser]>.self, from: data)
+            print("✅ Successfully decoded \(apiResponse.data.count) rankings")
+            return apiResponse.data
+        } catch {
+            print("🔴 Decoding error: \(error)")
+            throw NetworkError.decodingError
+        }
+    }
+    
+    @MainActor
+    func loadRankings() async {
+        isLoading = true
+        errorMessage = nil
+        
+        print("🏆 Loading rankings...")
+        
+        do {
+            let fetchedRankings = try await fetchRankings()
+            self.rankings = fetchedRankings
+            print("✅ Loaded \(fetchedRankings.count) rankings successfully")
+        } catch let error as NetworkError {
+            switch error {
+            case .invalidURL:
+                self.errorMessage = "잘못된 URL입니다."
+                print("🔴 Invalid URL")
+            case .invalidResponse:
+                self.errorMessage = "서버 응답이 올바르지 않습니다."
+                print("🔴 Invalid Response")
+            case .decodingError:
+                self.errorMessage = "데이터 처리 중 오류가 발생했습니다."
+                print("🔴 Decoding Error")
+            case .serverError(let message):
+                self.errorMessage = "서버 오류: \(message)"
+                print("🔴 Server Error: \(message)")
+            case .unauthorized:
+                self.errorMessage = "인증에 실패했습니다."
+                print("🔴 Unauthorized")
+            }
+        } catch {
+            self.errorMessage = "알 수 없는 오류가 발생했습니다: \(error.localizedDescription)"
+            print("🔴 Unknown Error: \(error.localizedDescription)")
+        }
+        
+        isLoading = false
+    }
+    
+    // MARK: - Participate in Volunteer
     func participateInVolunteer(volunteerId: Int) async throws -> VolunteerData {
         guard let url = URL(string: "\(baseURL)/volunteers/\(volunteerId)/participate") else {
             throw NetworkError.invalidURL
@@ -124,44 +242,6 @@ class VolunteerNetworkService: ObservableObject {
         
         isLoading = false
         return nil
-    }
-    
-    private func logResponse(_ response: URLResponse?, data: Data?, error: Error?) {
-        print("🌐 ========== RESPONSE ==========")
-        
-        if let error = error {
-            print("🔴 Error: \(error.localizedDescription)")
-        }
-        
-        if let httpResponse = response as? HTTPURLResponse {
-            let statusEmoji = httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 ? "✅" : "❌"
-            print("\(statusEmoji) Status Code: \(httpResponse.statusCode)")
-            print("🔵 URL: \(httpResponse.url?.absoluteString ?? "nil")")
-            print("🔵 Headers:")
-            httpResponse.allHeaderFields.forEach { key, value in
-                print("   \(key): \(value)")
-            }
-        }
-        
-        if let data = data {
-            print("🔵 Response Data (\(data.count) bytes):")
-            if let jsonObject = try? JSONSerialization.jsonObject(with: data),
-               let prettyData = try? JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted),
-               let prettyString = String(data: prettyData, encoding: .utf8) {
-                print(prettyString)
-            } else if let responseString = String(data: data, encoding: .utf8) {
-                print(responseString)
-            }
-        }
-        
-        print("================================\n")
-    }
-    
-    private func maskToken(_ token: String) -> String {
-        guard token.count > 20 else { return "***" }
-        let prefix = token.prefix(10)
-        let suffix = token.suffix(10)
-        return "\(prefix)...\(suffix)"
     }
     
     // MARK: - Fetch Nearby Volunteers

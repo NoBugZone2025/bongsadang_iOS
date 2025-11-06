@@ -57,16 +57,6 @@ struct VolunteerDetailView: View {
         return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
     }
     
-    let rankings: [RankingUser] = [
-        RankingUser(rank: 1, username: "User1", location: "서울시 은평구", points: "1558P", title: "칭호", rankColor: .gold),
-        RankingUser(rank: 2, username: "User2", location: "서울시 은평구", points: "1557P", title: "칭호", rankColor: .silver),
-        RankingUser(rank: 3, username: "User3", location: "서울시 은평구", points: "1556P", title: "칭호", rankColor: .bronze),
-        RankingUser(rank: 4, username: "User4", location: "서울시 은평구", points: "1555P", title: "칭호", rankColor: .black),
-        RankingUser(rank: 5, username: "User5", location: "서울시 은평구", points: "334P", title: "칭호", rankColor: .black),
-        RankingUser(rank: 6, username: "User41", location: "서울시 은평구", points: "228P", title: "칭호", rankColor: .black),
-        RankingUser(rank: 7, username: "User4", location: "서울시 은평구", points: "1555P", title: "칭호", rankColor: .black)
-    ]
-    
     var body: some View {
         ZStack(alignment: .bottom) {
             mapViewBackground
@@ -140,7 +130,7 @@ struct VolunteerDetailView: View {
                     }
                     .padding(.trailing, 16)
                 }
-                .padding(.top, isParticipating ? 230 : 120)
+                .padding(.top, isParticipating ? 350 : 120)
                 
                 Spacer()
             }
@@ -277,6 +267,13 @@ struct VolunteerDetailView: View {
         .onChange(of: networkService.volunteers) { volunteers in
             updateVolunteerLocations(volunteers)
         }
+        .onChange(of: showRankingModal) { newValue in
+            if newValue {
+                Task {
+                    await networkService.loadRankings()
+                }
+            }
+        }
         .onDisappear {
             stopTimer()
         }
@@ -331,9 +328,7 @@ struct VolunteerDetailView: View {
         }
     }
     
-    // ⭐️ 이 함수를 VolunteerDetailView 안에 추가하세요
     private func updateVolunteerLocations(_ volunteers: [VolunteerData]) {
-        // 좌표별로 그룹화
         var coordinateGroups: [String: [VolunteerData]] = [:]
         
         for volunteer in volunteers {
@@ -344,14 +339,13 @@ struct VolunteerDetailView: View {
             coordinateGroups[key]?.append(volunteer)
         }
         
-        // 위치 분산 적용
-        volunteerLocations = volunteers.enumerated().map { index, volunteer in
+        volunteerLocations = volunteers.enumerated().map {
+            index, volunteer in
             let key = "\(volunteer.latitude),\(volunteer.longitude)"
             let group = coordinateGroups[key] ?? []
             
-            // 같은 좌표에 여러 개가 있으면 위치 분산
             if group.count > 1, let groupIndex = group.firstIndex(where: { $0.id == volunteer.id }) {
-                let offset = Double(groupIndex) * 0.0001 // 약 11m 간격
+                let offset = Double(groupIndex) * 0.0001
                 let adjustedCoordinate = CLLocationCoordinate2D(
                     latitude: volunteer.latitude + offset,
                     longitude: volunteer.longitude + offset
@@ -362,7 +356,6 @@ struct VolunteerDetailView: View {
                     volunteerData: volunteer
                 )
             } else {
-                // 단독이면 원래 위치 사용
                 return VolunteerLocation(
                     id: volunteer.id,
                     coordinate: volunteer.coordinate,
@@ -616,7 +609,6 @@ struct VolunteerDetailView: View {
                         
                         Spacer()
                         
-                        // ✅ 수정: formattedStartDate 사용
                         Text(volunteer.formattedStartDate)
                             .font(.system(size: 13))
                             .foregroundColor(Color(hex: "A0522D"))
@@ -655,7 +647,6 @@ struct VolunteerDetailView: View {
                             Image(systemName: "clock.fill")
                                 .font(.system(size: 14))
                                 .foregroundColor(Color(hex: "8B4513"))
-                            // ✅ 수정: formattedTimeRange 사용
                             Text(volunteer.formattedTimeRange)
                                 .font(.system(size: 13))
                                 .foregroundColor(Color(hex: "A0522D"))
@@ -909,8 +900,15 @@ struct VolunteerDetailView: View {
     private var rankingBottomSheet: some View {
         ScrollView {
             VStack(spacing: 10) {
-                ForEach(rankings) { user in
+                ForEach(networkService.rankings) { user in
                     rankingCard(user: user)
+                }
+                
+                if networkService.rankings.isEmpty && !networkService.isLoading {
+                    Text("랭킹 데이터가 없습니다")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                        .padding(.vertical, 40)
                 }
             }
             .padding(.top, 10)
@@ -939,23 +937,19 @@ struct VolunteerDetailView: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
-                    Text(user.username)
+                    Text(user.userName)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Color(hex: "8B4513"))
                     
-                    Text(user.title)
+                    Text(user.currentTitle ?? "")
                         .font(.system(size: 13, weight: .light))
                         .foregroundColor(Color(hex: "8B4513"))
                 }
-                
-                Text(user.location)
-                    .font(.system(size: 13, weight: .light))
-                    .foregroundColor(Color(hex: "8B4513"))
             }
             
             Spacer()
             
-            Text(user.points)
+            Text(user.formattedPoints)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(Color(hex: "8B4513"))
         }
@@ -1531,16 +1525,6 @@ struct LoadingView: View {
     }
 }
 
-struct RankingUser: Identifiable {
-    let id = UUID()
-    let rank: Int
-    let username: String
-    let location: String
-    let points: String
-    let title: String
-    let rankColor: Color
-}
-
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     @Published var userLocation: CLLocation?
@@ -1597,7 +1581,7 @@ extension Color {
         default:
             (a, r, g, b) = (1, 1, 1, 0)
         }
-
+        
         self.init(
             .sRGB,
             red: Double(r) / 255,
