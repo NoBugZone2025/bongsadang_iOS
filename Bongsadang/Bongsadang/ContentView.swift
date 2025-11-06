@@ -500,7 +500,7 @@ struct VolunteerDetailView: View {
                         selectedLocation = location
                     }
                 }) {
-                    mapMarker(number: location.id)
+                    mapMarker(number: location.volunteerData.maxParticipants)
                 }
             }
         }
