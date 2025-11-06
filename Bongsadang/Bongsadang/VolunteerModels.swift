@@ -21,8 +21,8 @@ struct CreateVolunteerRequest: Codable {
     let description: String
     let latitude: Double
     let longitude: Double
-    let startDateTime: String  // ISO8601 format: "2025-11-06T14:30:00Z"
-    let endDateTime: String    // ISO8601 format: "2025-11-06T16:30:00Z"
+    let startDateTime: String  // ISO8601 format
+    let endDateTime: String    // ISO8601 format
     let maxParticipants: Int
     let visibilityType: String  // "PUBLIC" or "PRIVATE"
     let volunteerType: String   // "PLOGGING", "DELIVERY", etc.
@@ -46,17 +46,14 @@ struct VolunteerData: Codable, Identifiable, Equatable {
     let createdAt: String
     let updatedAt: String
     
-    // Equatable conformance
     static func == (lhs: VolunteerData, rhs: VolunteerData) -> Bool {
         lhs.id == rhs.id
     }
     
-    // Computed property to convert to CLLocationCoordinate2D
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
     
-    // Format dates for display
     var formattedStartDate: String {
         formatDate(startDateTime)
     }
@@ -73,6 +70,7 @@ struct VolunteerData: Codable, Identifiable, Equatable {
         
         let displayFormatter = DateFormatter()
         displayFormatter.dateFormat = "yyyy.MM.dd"
+        displayFormatter.timeZone = TimeZone(identifier: "Asia/Seoul")
         return displayFormatter.string(from: date)
     }
     
@@ -82,6 +80,7 @@ struct VolunteerData: Codable, Identifiable, Equatable {
         
         let displayFormatter = DateFormatter()
         displayFormatter.dateFormat = "HH:mm"
+        displayFormatter.timeZone = TimeZone(identifier: "Asia/Seoul")
         return displayFormatter.string(from: date)
     }
 }
@@ -98,19 +97,12 @@ struct VolunteerLocation: Identifiable, Equatable {
 }
 
 // MARK: - Helper Extensions
-extension DateFormatter {
-    static let iso8601Full: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        return formatter
-    }()
-}
-
 extension Date {
     func toISO8601String() -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        // 한국 시간대 사용 (KST: UTC+9)
+        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
         return formatter.string(from: self)
     }
 }

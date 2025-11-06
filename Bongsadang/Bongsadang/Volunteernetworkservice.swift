@@ -13,7 +13,7 @@ class VolunteerNetworkService: ObservableObject {
     static let shared = VolunteerNetworkService()
     
     private let baseURL = "https://mouse-loud-muscle-advanced.trycloudflare.com"
-    private let accessToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwiZW1haWwiOiJsZWVqaCIsInJvbGUiOiJVU0VSIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2MjQwMDQ4NywiZXhwIjozNzc2MjQwMDQ4N30.H79p1yUhraF7boUnITYgza3oS2x9cyaHwsLzxvUCNpJ5WtVgWyGgRZ1qe0zURsFe5mx7vVXzXQZHwOP6Hfcz6A"
+    private let accessToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwiZW1haWwiOiJsZWVqaCIsInJvbGUiOiJVU0VSIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2MjQwMTgyOCwiZXhwIjozNzc2MjQwMTgyOH0.TPd6SopMGoeD-1tcXPjbJurzm92hwUT6fkjmHfqWR2ySlEkC9J9m3noanZJfw9rwnlRz4ubInuum9Sh4AbXw9w"
     
     @Published var volunteers: [VolunteerData] = []
     @Published var isLoading: Bool = false
@@ -188,7 +188,9 @@ class VolunteerNetworkService: ObservableObject {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         
-        urlRequest.httpBody = try JSONEncoder().encode(request)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        urlRequest.httpBody = try encoder.encode(request)
         
         logRequest(urlRequest)
         
@@ -200,21 +202,37 @@ class VolunteerNetworkService: ObservableObject {
             throw NetworkError.invalidResponse
         }
         
-        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
-            if httpResponse.statusCode == 401 {
-                throw NetworkError.unauthorized
+        // Handle different status codes with more specific errors
+        switch httpResponse.statusCode {
+        case 200, 201:
+            do {
+                let apiResponse = try JSONDecoder().decode(APIResponse<VolunteerData>.self, from: data)
+                print("✅ Successfully created volunteer activity with ID: \(apiResponse.data.id)")
+                return apiResponse.data
+            } catch {
+                print("🔴 Decoding error: \(error)")
+                if let errorString = String(data: data, encoding: .utf8) {
+                    print("🔴 Raw response: \(errorString)")
+                }
+                throw NetworkError.decodingError
             }
-            throw NetworkError.serverError("Status code: \(httpResponse.statusCode)")
-        }
-        
-        do {
-            let apiResponse = try JSONDecoder().decode(APIResponse<VolunteerData>.self, from: data)
-            print("✅ Successfully created volunteer activity with ID: \(apiResponse.data.id)")
-            return apiResponse.data
-        } catch {
-            print("🔴 Decoding error: \(error)")
-            logResponse(response, data: data, error: error)
-            throw NetworkError.decodingError
+        case 400:
+            // Parse error message from response
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("🔴 400 Bad Request - Response: \(errorString)")
+                throw NetworkError.serverError("잘못된 요청: \(errorString)")
+            }
+            throw NetworkError.serverError("잘못된 요청 (400)")
+        case 401:
+            throw NetworkError.unauthorized
+        case 403:
+            throw NetworkError.serverError("접근 권한이 없습니다 (403)")
+        case 404:
+            throw NetworkError.serverError("요청한 리소스를 찾을 수 없습니다 (404)")
+        case 500...599:
+            throw NetworkError.serverError("서버 오류 (\(httpResponse.statusCode))")
+        default:
+            throw NetworkError.serverError("알 수 없는 오류 (Status code: \(httpResponse.statusCode))")
         }
     }
     
