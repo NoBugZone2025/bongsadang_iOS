@@ -56,6 +56,15 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, 32)
                     
+                    HStack {
+                        Image(systemName: vm.isKeepLoggedIn ? "checkmark.square" : "square")
+                            .onTapGesture { vm.isKeepLoggedIn.toggle() }
+                        Text("로그인 상태 유지")
+                        Spacer()
+                        Button("비밀번호 찾기") {}
+                    }
+                    .padding(.horizontal, 32)
+                    
                     // 로그인 버튼
                     Button {
                         Task { await vm.login() }
@@ -124,7 +133,7 @@ struct LoginView: View {
                 .padding(.bottom, 50)
             }
             .fullScreenCover(isPresented: $vm.isLoggedIn) {
-                MainView()
+                VolunteerDetailView()
             }
             
             .onAppear {
