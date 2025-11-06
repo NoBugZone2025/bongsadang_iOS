@@ -18,6 +18,8 @@ class VolunteerNetworkService: ObservableObject {
     @Published var volunteers: [VolunteerData] = []
     @Published var rankings: [RankingUser] = []
     @Published var userInfo: UserInfo?
+    @Published var completedVolunteers: [VolunteerData] = []
+    @Published var myVolunteers: [VolunteerData] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     
@@ -412,6 +414,158 @@ class VolunteerNetworkService: ObservableObject {
         isLoading = false
     }
     
+    // MARK: - Fetch Completed Volunteers
+    func fetchCompletedVolunteers() async throws -> [VolunteerData] {
+        guard let url = URL(string: "\(baseURL)/volunteers/completed") else {
+            throw NetworkError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        logRequest(request)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        logResponse(response, data: data, error: nil)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 401 {
+                throw NetworkError.unauthorized
+            }
+            throw NetworkError.serverError("Status code: \(httpResponse.statusCode)")
+        }
+        
+        do {
+            let apiResponse = try JSONDecoder().decode(APIResponse<[VolunteerData]>.self, from: data)
+            print("✅ Successfully decoded \(apiResponse.data.count) completed volunteers")
+            return apiResponse.data
+        } catch {
+            print("🔴 Decoding error: \(error)")
+            logResponse(response, data: data, error: error)
+            throw NetworkError.decodingError
+        }
+    }
+    
+    @MainActor
+    func loadCompletedVolunteers() async {
+        isLoading = true
+        errorMessage = nil
+        
+        print("✅ Loading completed volunteers...")
+        
+        do {
+            let fetchedVolunteers = try await fetchCompletedVolunteers()
+            self.completedVolunteers = fetchedVolunteers
+            print("✅ Loaded \(fetchedVolunteers.count) completed volunteers successfully")
+        } catch let error as NetworkError {
+            switch error {
+            case .invalidURL:
+                self.errorMessage = "잘못된 URL입니다."
+                print("🔴 Invalid URL")
+            case .invalidResponse:
+                self.errorMessage = "서버 응답이 올바르지 않습니다."
+                print("🔴 Invalid Response")
+            case .decodingError:
+                self.errorMessage = "데이터 처리 중 오류가 발생했습니다."
+                print("🔴 Decoding Error")
+            case .serverError(let message):
+                self.errorMessage = "서버 오류: \(message)"
+                print("🔴 Server Error: \(message)")
+            case .unauthorized:
+                self.errorMessage = "인증에 실패했습니다."
+                print("🔴 Unauthorized")
+            }
+        } catch {
+            self.errorMessage = "알 수 없는 오류가 발생했습니다: \(error.localizedDescription)"
+            print("🔴 Unknown Error: \(error.localizedDescription)")
+        }
+        
+        isLoading = false
+    }
+
+    // MARK: - Fetch My Volunteers
+    func fetchMyVolunteers() async throws -> [VolunteerData] {
+        guard let url = URL(string: "\(baseURL)/volunteers/my") else {
+            throw NetworkError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        logRequest(request)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        logResponse(response, data: data, error: nil)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 401 {
+                throw NetworkError.unauthorized
+            }
+            throw NetworkError.serverError("Status code: \(httpResponse.statusCode)")
+        }
+        
+        do {
+            let apiResponse = try JSONDecoder().decode(APIResponse<[VolunteerData]>.self, from: data)
+            print("✅ Successfully decoded \(apiResponse.data.count) my volunteers")
+            return apiResponse.data
+        } catch {
+            print("🔴 Decoding error: \(error)")
+            logResponse(response, data: data, error: error)
+            throw NetworkError.decodingError
+        }
+    }
+    
+    @MainActor
+    func loadMyVolunteers() async {
+        isLoading = true
+        errorMessage = nil
+        
+        print("✅ Loading my volunteers...")
+        
+        do {
+            let fetchedVolunteers = try await fetchMyVolunteers()
+            self.myVolunteers = fetchedVolunteers
+            print("✅ Loaded \(fetchedVolunteers.count) my volunteers successfully")
+        } catch let error as NetworkError {
+            switch error {
+            case .invalidURL:
+                self.errorMessage = "잘못된 URL입니다."
+                print("🔴 Invalid URL")
+            case .invalidResponse:
+                self.errorMessage = "서버 응답이 올바르지 않습니다."
+                print("🔴 Invalid Response")
+            case .decodingError:
+                self.errorMessage = "데이터 처리 중 오류가 발생했습니다."
+                print("🔴 Decoding Error")
+            case .serverError(let message):
+                self.errorMessage = "서버 오류: \(message)"
+                print("🔴 Server Error: \(message)")
+            case .unauthorized:
+                self.errorMessage = "인증에 실패했습니다."
+                print("🔴 Unauthorized")
+            }
+        } catch {
+            self.errorMessage = "알 수 없는 오류가 발생했습니다: \(error.localizedDescription)"
+            print("🔴 Unknown Error: \(error.localizedDescription)")
+        }
+        
+        isLoading = false
+    }
+
     // MARK: - Create Volunteer
     func createVolunteer(request: CreateVolunteerRequest) async throws -> VolunteerData {
         guard let url = URL(string: "\(baseURL)/volunteers") else {
