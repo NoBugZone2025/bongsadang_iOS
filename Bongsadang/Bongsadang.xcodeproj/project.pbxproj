@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6F20107F2EBB8F13000886BF /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 6F20107E2EBB8F13000886BF /* MapboxMaps */; };
+		9A5288312EBB964A007FA2EF /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 9A5288302EBB964A007FA2EF /* MapboxMaps */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,7 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6F20107F2EBB8F13000886BF /* MapboxMaps in Frameworks */,
+				9A5288312EBB964A007FA2EF /* MapboxMaps in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -83,7 +83,7 @@
 			);
 			name = Bongsadang;
 			packageProductDependencies = (
-				6F20107E2EBB8F13000886BF /* MapboxMaps */,
+				9A5288302EBB964A007FA2EF /* MapboxMaps */,
 			);
 			productName = Bongsadang;
 			productReference = 6F20B41A2EBB683800A2FD24 /* Bongsadang.app */;
@@ -114,7 +114,7 @@
 			mainGroup = 6F20B4112EBB683700A2FD24;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				6F20107D2EBB8F13000886BF /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */,
+				9A52882F2EBB964A007FA2EF /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6F20B41B2EBB683800A2FD24 /* Products */;
@@ -356,9 +356,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		6F20107D2EBB8F13000886BF /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */ = {
+		9A52882F2EBB964A007FA2EF /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/mapbox/mapbox-maps-ios.git";
+			repositoryURL = "https://github.com/mapbox/mapbox-maps-ios";
 			requirement = {
 				branch = main;
 				kind = branch;
@@ -367,9 +367,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		6F20107E2EBB8F13000886BF /* MapboxMaps */ = {
+		9A5288302EBB964A007FA2EF /* MapboxMaps */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 6F20107D2EBB8F13000886BF /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */;
+			package = 9A52882F2EBB964A007FA2EF /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */;
 			productName = MapboxMaps;
 		};
 /* End XCSwiftPackageProductDependency section */
