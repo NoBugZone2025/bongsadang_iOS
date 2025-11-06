@@ -19,7 +19,7 @@ struct SplashView: View {
                         Image("로고")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 200, height: 200)
+                            .frame(width: 250, height: 250)
                         
                         Text("봉사당")
                             .font(.largeTitle)
