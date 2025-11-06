@@ -11,6 +11,7 @@ struct VolunteerDetailView: View {
         span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
     @State private var selectedLocation: VolunteerLocation?
+    @State private var currentParticipatingVolunteer: VolunteerData?
     @StateObject private var locationManager = LocationManager()
     @StateObject private var networkService = VolunteerNetworkService.shared
     @State private var volunteerLocations: [VolunteerLocation] = []
@@ -387,9 +388,20 @@ struct VolunteerDetailView: View {
     }
     
     private func startParticipation() {
-        isParticipating = true
-        selectedLocation = nil
-        startTimer()
+        guard let location = selectedLocation else { return }
+        
+        Task {
+            let volunteer = await networkService.participateAndStartActivity(volunteerId: location.id)
+            
+            if let volunteer = volunteer {
+                await MainActor.run {
+                    currentParticipatingVolunteer = volunteer
+                    isParticipating = true
+                    selectedLocation = nil
+                    startTimer()
+                }
+            }
+        }
     }
     
     private func submitVolunteerCreation() {
@@ -492,7 +504,7 @@ struct VolunteerDetailView: View {
                 }
             }
         }
-        .ignoresSafeArea()
+            .ignoresSafeArea()
     }
     
     private var topNavigationBar: some View {
@@ -720,89 +732,94 @@ struct VolunteerDetailView: View {
     
     private var activeVolunteerCard: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top) {
-                    Text("독거노인 도시락 배달")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color(hex: "8B4513"))
-                    
-                    Spacer()
-                    
-                    Text("2025.11.15")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "A0522D"))
-                }
-                
-                HStack(alignment: .top) {
-                    Text("따뜻한 마음으로 어르신들께\n도시락을 전달해요")
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "A0522D"))
-                        .lineSpacing(2)
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("by 김봉사")
+            if let volunteer = currentParticipatingVolunteer {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top) {
+                        Text(volunteer.title)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color(hex: "8B4513"))
+                        
+                        Spacer()
+                        
+                        Text(volunteer.formattedStartDate)
                             .font(.system(size: 12))
                             .foregroundColor(Color(hex: "A0522D"))
-                        
-                        Text("3/5")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color(hex: "D2691E"))
-                    }
-                }
-                Rectangle()
-                    .fill(Color.white)
-                    .frame(height: 1)
-                    .padding(.vertical, 4)
-                VStack(spacing: 6) {
-                    HStack {
-                        Spacer()
-                        Text(formattedTime)
-                            .font(.system(size: 10, weight: .regular))
-                            .foregroundColor(Color(hex: "8B4513"))
                     }
                     
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            Rectangle()
-                                .fill(Color.white)
-                                .frame(height: 2)
-                            Rectangle()
-                                .fill(Color(hex: "FFD1A0"))
-                                .frame(width: geometry.size.width * progress, height: 2)
-                        }
-                    }
-                    .frame(height: 2)
-                }
-                if elapsedTime >= totalDuration {
-                    HStack {
+                    HStack(alignment: .top) {
+                        Text(volunteer.description)
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(hex: "A0522D"))
+                            .lineSpacing(2)
+                        
                         Spacer()
-                        Button(action: {
-                            showImagePicker = true
-                        }) {
-                            Text("인증하기")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .frame(width: 70, height: 33.14)
-                                .background(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .cornerRadius(16.57)
+                        
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("by \(volunteer.organizerName)")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(hex: "A0522D"))
+                            
+                            Text("\(volunteer.currentParticipants)/\(volunteer.maxParticipants)")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(Color(hex: "D2691E"))
                         }
                     }
-                    .padding(.top, 4)
+                    
+                    Rectangle()
+                        .fill(Color.white)
+                        .frame(height: 1)
+                        .padding(.vertical, 4)
+                    
+                    VStack(spacing: 6) {
+                        HStack {
+                            Spacer()
+                            Text(formattedTime)
+                                .font(.system(size: 10, weight: .regular))
+                                .foregroundColor(Color(hex: "8B4513"))
+                        }
+                        
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                Rectangle()
+                                    .fill(Color.white)
+                                    .frame(height: 2)
+                                Rectangle()
+                                    .fill(Color(hex: "FFD1A0"))
+                                    .frame(width: geometry.size.width * progress, height: 2)
+                            }
+                        }
+                        .frame(height: 2)
+                    }
+                    
+                    if elapsedTime >= totalDuration {
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                showImagePicker = true
+                            }) {
+                                Text("인증하기")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 70, height: 33.14)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .cornerRadius(16.57)
+                            }
+                        }
+                        .padding(.top, 4)
+                    }
                 }
+                .padding(.vertical, 15)
+                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(hex: "FFF7F0"))
+                .cornerRadius(24)
             }
-            .padding(.vertical, 15)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(hex: "FFF7F0"))
-            .cornerRadius(24)
         }
         .frame(height: 200)
         .padding(10)
@@ -872,7 +889,7 @@ struct VolunteerDetailView: View {
                 .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: -5)
         )
     }
-
+    
     private func tabBarItem(icon: String, isSelected: Bool, action: (() -> Void)? = nil) -> some View {
         Button(action: {
             action?()
@@ -1384,77 +1401,80 @@ struct VolunteerDetailView: View {
     
     private var verificationCompleteModal: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top) {
-                    Text("독거노인 도시락 배달")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(Color(hex: "8B4513"))
-                    
-                    Spacer()
-                    
-                    Text("2025.11.15")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(hex: "A0522D"))
-                }
-                
-                HStack(alignment: .top) {
-                    Text("따뜻한 마음으로 어르신들께\n도시락을 전달해요")
-                        .font(.system(size: 14))
-                        .foregroundColor(Color(hex: "A0522D"))
-                        .lineSpacing(3)
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("by 김봉사")
+            if let volunteer = currentParticipatingVolunteer {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top) {
+                        Text(volunteer.title)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color(hex: "8B4513"))
+                        
+                        Spacer()
+                        
+                        Text(volunteer.formattedStartDate)
                             .font(.system(size: 12))
                             .foregroundColor(Color(hex: "A0522D"))
+                    }
+                    
+                    HStack(alignment: .top) {
+                        Text(volunteer.description)
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(hex: "A0522D"))
+                            .lineSpacing(3)
                         
-                        Text("3/5")
-                            .font(.system(size: 12, weight: .medium))
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("by \(volunteer.organizerName)")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(hex: "A0522D"))
+                            
+                            Text("\(volunteer.currentParticipants)/\(volunteer.maxParticipants)")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(Color(hex: "D2691E"))
+                        }
+                    }
+                    
+                    Rectangle()
+                        .fill(Color.white)
+                        .frame(height: 1)
+                        .padding(.vertical, 4)
+                    
+                    HStack {
+                        Spacer()
+                        Text(formattedTime)
+                            .font(.system(size: 10))
+                            .foregroundColor(Color(hex: "8B4513"))
+                    }
+                    
+                    Rectangle()
+                        .fill(Color(hex: "FFD1A0"))
+                        .frame(height: 2)
+                    
+                    VStack(spacing: 10) {
+                        Text("인증 완료!")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(Color(hex: "D2691E"))
+                        
+                        Text("445P 지급!")
+                            .font(.system(size: 24, weight: .bold))
                             .foregroundColor(Color(hex: "D2691E"))
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                    .background(Color.white)
+                    .cornerRadius(22)
                 }
-                
-                Rectangle()
-                    .fill(Color.white)
-                    .frame(height: 1)
-                    .padding(.vertical, 4)
-                
-                HStack {
-                    Spacer()
-                    Text("02:00:00")
-                        .font(.system(size: 10))
-                        .foregroundColor(Color(hex: "8B4513"))
-                }
-                
-                Rectangle()
-                    .fill(Color(hex: "FFD1A0"))
-                    .frame(height: 2)
-                
-                VStack(spacing: 10) {
-                    Text("인증 완료!")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(Color(hex: "D2691E"))
-                    
-                    Text("445P 지급!")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(Color(hex: "D2691E"))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 40)
-                .background(Color.white)
-                .cornerRadius(22)
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(hex: "FFF7F0"))
+                .cornerRadius(24)
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(hex: "FFF7F0"))
-            .cornerRadius(24)
             
             Button(action: {
                 withAnimation {
                     showVerificationComplete = false
                     isParticipating = false
+                    currentParticipatingVolunteer = nil
                     elapsedTime = 0
                 }
             }) {

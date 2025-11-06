@@ -13,7 +13,7 @@ class VolunteerNetworkService: ObservableObject {
     static let shared = VolunteerNetworkService()
     
     private let baseURL = "https://mouse-loud-muscle-advanced.trycloudflare.com"
-    private let accessToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwiZW1haWwiOiJsZWVqaCIsInJvbGUiOiJVU0VSIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2MjQwMTgyOCwiZXhwIjozNzc2MjQwMTgyOH0.TPd6SopMGoeD-1tcXPjbJurzm92hwUT6fkjmHfqWR2ySlEkC9J9m3noanZJfw9rwnlRz4ubInuum9Sh4AbXw9w"
+    private let accessToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwiZW1haWwiOiJhc2RmIiwicm9sZSI6IlVTRVIiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzYyNDAzOTA2LCJleHAiOjM3NzYyNDAzOTA2fQ.VmZqX_n5kNOHyXKSXTN1rlDDR6ct7fxOgzTDj2Ku8FnuhVtuvTq-5cBlVf9Fju7y-ggkmgOlnlW_egCm0qPhLQ"
     
     @Published var volunteers: [VolunteerData] = []
     @Published var isLoading: Bool = false
@@ -49,6 +49,81 @@ class VolunteerNetworkService: ObservableObject {
             }
         }
         print("================================\n")
+    }
+    
+    
+    func participateInVolunteer(volunteerId: Int) async throws -> VolunteerData {
+        guard let url = URL(string: "\(baseURL)/volunteers/\(volunteerId)/participate") else {
+            throw NetworkError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        logRequest(request)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        logResponse(response, data: data, error: nil)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 401 {
+                throw NetworkError.unauthorized
+            }
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("🔴 Error Response: \(errorString)")
+                throw NetworkError.serverError(errorString)
+            }
+            throw NetworkError.serverError("Status code: \(httpResponse.statusCode)")
+        }
+        
+        do {
+            let apiResponse = try JSONDecoder().decode(APIResponse<VolunteerData>.self, from: data)
+            print("✅ Successfully participated in volunteer activity: \(apiResponse.data.title)")
+            return apiResponse.data
+        } catch {
+            print("🔴 Decoding error: \(error)")
+            throw NetworkError.decodingError
+        }
+    }
+
+    @MainActor
+    func participateAndStartActivity(volunteerId: Int) async -> VolunteerData? {
+        isLoading = true
+        errorMessage = nil
+        
+        print("🎯 Participating in volunteer activity ID: \(volunteerId)")
+        
+        do {
+            let participatedVolunteer = try await participateInVolunteer(volunteerId: volunteerId)
+            print("✅ Participation successful: \(participatedVolunteer.title)")
+            isLoading = false
+            return participatedVolunteer
+        } catch let error as NetworkError {
+            switch error {
+            case .invalidURL:
+                self.errorMessage = "잘못된 URL입니다."
+            case .invalidResponse:
+                self.errorMessage = "서버 응답이 올바르지 않습니다."
+            case .decodingError:
+                self.errorMessage = "데이터 처리 중 오류가 발생했습니다."
+            case .serverError(let message):
+                self.errorMessage = "서버 오류: \(message)"
+            case .unauthorized:
+                self.errorMessage = "인증에 실패했습니다."
+            }
+        } catch {
+            self.errorMessage = "알 수 없는 오류가 발생했습니다: \(error.localizedDescription)"
+        }
+        
+        isLoading = false
+        return nil
     }
     
     private func logResponse(_ response: URLResponse?, data: Data?, error: Error?) {
