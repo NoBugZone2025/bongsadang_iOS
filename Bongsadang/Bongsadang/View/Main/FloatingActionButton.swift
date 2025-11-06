@@ -15,11 +15,7 @@ struct FloatingActionButton: View {
                 .foregroundColor(.white)
                 .frame(width: 56, height: 56)
                 .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+                    Color(hex: "#F6AD55")
                 )
                 .cornerRadius(28)
                 .overlay(
