@@ -21,6 +21,13 @@ struct VolunteerDetailView: View {
     @State private var selectedImage: UIImage?
     @State private var showVerificationComplete: Bool = false
     @State private var showCreateVolunteerModal: Bool = false
+    @State private var createTitle: String = ""
+    @State private var createLocation: String = ""
+    @State private var createStartTime: String = ""
+    @State private var createEndTime: String = ""
+    @State private var createParticipants: String = ""
+    @State private var createContent: String = ""
+    @FocusState private var isTextFieldFocused: Bool
     
     let startTime: Date = Date()
     
@@ -944,17 +951,19 @@ struct VolunteerDetailView: View {
             VStack(spacing: 10) {
                 // Title Section
                 createFormSection(title: "제목") {
-                    TextField("", text: .constant(""))
-                        .placeholder(when: true, placeholder: {
+                    TextField("", text: $createTitle)
+                        .placeholder(when: createTitle.isEmpty, placeholder: {
                             Text("제목을 입력하세요...")
                                 .font(.system(size: 10))
                                 .foregroundColor(Color(hex: "A1A1A1"))
                         })
                         .font(.system(size: 10))
+                        .foregroundColor(.black)
                         .padding(.horizontal, 16)
                         .frame(height: 37)
                         .background(Color.white)
                         .cornerRadius(16)
+                        .focused($isTextFieldFocused)
                 }
                 
                 // Location Section
@@ -977,18 +986,20 @@ struct VolunteerDetailView: View {
                     }
                     .padding(.horizontal, 19)
                     
-                    TextField("", text: .constant(""))
-                        .placeholder(when: true, placeholder: {
+                    TextField("", text: $createLocation)
+                        .placeholder(when: createLocation.isEmpty, placeholder: {
                             Text("서울특별시 종로구 XXX")
                                 .font(.system(size: 10))
                                 .foregroundColor(Color(hex: "A1A1A1"))
                         })
                         .font(.system(size: 10))
+                        .foregroundColor(.black)
                         .padding(.horizontal, 16)
                         .frame(height: 37)
                         .background(Color.white)
                         .cornerRadius(16)
                         .padding(.horizontal, 14)
+                        .focused($isTextFieldFocused)
                 }
                 .padding(.vertical, 15)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1004,44 +1015,50 @@ struct VolunteerDetailView: View {
                         .padding(.horizontal, 19)
                     
                     HStack(spacing: 19) {
-                        TextField("", text: .constant(""))
-                            .placeholder(when: true, placeholder: {
+                        TextField("", text: $createStartTime)
+                            .placeholder(when: createStartTime.isEmpty, placeholder: {
                                 Text("시작 시간")
                                     .font(.system(size: 10))
                                     .foregroundColor(Color(hex: "A1A1A1"))
                             })
                             .font(.system(size: 10))
+                            .foregroundColor(.black)
                             .padding(.horizontal, 16)
                             .frame(height: 37)
                             .background(Color.white)
                             .cornerRadius(16)
+                            .focused($isTextFieldFocused)
                         
-                        TextField("", text: .constant(""))
-                            .placeholder(when: true, placeholder: {
+                        TextField("", text: $createEndTime)
+                            .placeholder(when: createEndTime.isEmpty, placeholder: {
                                 Text("종료 시간")
                                     .font(.system(size: 10))
                                     .foregroundColor(Color(hex: "A1A1A1"))
                             })
                             .font(.system(size: 10))
+                            .foregroundColor(.black)
                             .padding(.horizontal, 16)
                             .frame(height: 37)
                             .background(Color.white)
                             .cornerRadius(16)
+                            .focused($isTextFieldFocused)
                     }
                     .padding(.horizontal, 10)
                     
-                    TextField("", text: .constant(""))
-                        .placeholder(when: true, placeholder: {
+                    TextField("", text: $createParticipants)
+                        .placeholder(when: createParticipants.isEmpty, placeholder: {
                             Text("모집 인원")
                                 .font(.system(size: 10))
                                 .foregroundColor(Color(hex: "A1A1A1"))
                         })
                         .font(.system(size: 10))
+                        .foregroundColor(.black)
                         .padding(.horizontal, 16)
                         .frame(height: 37)
                         .background(Color.white)
                         .cornerRadius(16)
                         .padding(.horizontal, 10)
+                        .focused($isTextFieldFocused)
                 }
                 .padding(.vertical, 15)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1057,7 +1074,7 @@ struct VolunteerDetailView: View {
                         .padding(.horizontal, 19)
                     
                     ZStack(alignment: .topLeading) {
-                        if true { // placeholder condition
+                        if createContent.isEmpty { // placeholder condition
                             Text("내용을 입력하세요...")
                                 .font(.system(size: 10))
                                 .foregroundColor(Color(hex: "A1A1A1"))
@@ -1065,7 +1082,7 @@ struct VolunteerDetailView: View {
                                 .padding(.top, 11)
                         }
                         
-                        TextEditor(text: .constant(""))
+                        TextEditor(text: $createContent)
                             .font(.system(size: 10))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
@@ -1073,6 +1090,7 @@ struct VolunteerDetailView: View {
                             .background(Color.white)
                             .cornerRadius(16)
                             .scrollContentBackground(.hidden)
+                            .focused($isTextFieldFocused)
                     }
                     .padding(.horizontal, 14)
                 }
@@ -1134,6 +1152,9 @@ struct VolunteerDetailView: View {
                 .padding(.top, 10)
             }
             .padding(.top, 10)
+        }
+        .onTapGesture {
+            isTextFieldFocused = false
         }
         .background(
             RoundedRectangle(cornerRadius: 32)
