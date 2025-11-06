@@ -1,24 +1,23 @@
-
 import SwiftUI
 
-struct MyVolunteerRecordsCardView: View {
-    let completedVolunteers: [VolunteerData]
+struct MyRecruitedVolunteersCardView: View {
+    let myVolunteers: [VolunteerData]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("나의 봉사 기록")
+            Text("내가 모집한 봉사")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(Color(hex: "8B4513"))
                 .padding(.horizontal, 19)
 
             VStack(spacing: 12) {
-                if completedVolunteers.isEmpty {
-                    Text("완료된 봉사 기록이 없습니다.")
+                if myVolunteers.isEmpty {
+                    Text("모집한 봉사 기록이 없습니다.")
                         .font(.system(size: 14))
                         .foregroundColor(.gray)
                         .padding(.vertical, 40)
                 } else {
-                    ForEach(completedVolunteers) { volunteer in
+                    ForEach(myVolunteers) { volunteer in
                         VolunteerRecordItemView(
                             title: volunteer.title,
                             description: volunteer.description,

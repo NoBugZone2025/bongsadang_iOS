@@ -8,10 +8,16 @@ struct MyPageBottomSheetView: View {
         ScrollView {
             VStack(spacing: 10) {
                 MyProfileCardView(networkService: networkService)
-                FriendsManagementCardView()
-                MyVolunteerRecordsCardView()
+                MyRecruitedVolunteersCardView(myVolunteers: networkService.myVolunteers)
+                MyVolunteerRecordsCardView(completedVolunteers: networkService.completedVolunteers)
             }
             .padding(.top, 10)
+        }
+        .onAppear {
+            Task {
+                await networkService.loadCompletedVolunteers()
+                await networkService.loadMyVolunteers()
+            }
         }
         .background(
             RoundedRectangle(cornerRadius: 32)

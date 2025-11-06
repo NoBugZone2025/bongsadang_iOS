@@ -28,9 +28,15 @@ class LoginViewModel: ObservableObject {
             print("accessToken = \(tokenData.accessToken)")
             print("refreshToken = \(tokenData.refreshToken)")
             
-            KeychainHelper.shared.save(value: tokenData.accessToken, forKey: "accessToken")
-            KeychainHelper.shared.save(value: tokenData.refreshToken, forKey: "refreshToken")
-            print("[Keychain] 토큰 저장 완료")
+            if isKeepLoggedIn {
+                KeychainHelper.shared.save(value: tokenData.accessToken, forKey: "accessToken")
+                KeychainHelper.shared.save(value: tokenData.refreshToken, forKey: "refreshToken")
+                print("[Keychain] 토큰 저장 완료")
+            } else {
+                KeychainHelper.shared.delete(forKey: "accessToken")
+                KeychainHelper.shared.delete(forKey: "refreshToken")
+                print("[Keychain] 토큰 삭제 완료")
+            }
             
             let savedAccess = KeychainHelper.shared.read(forKey: "accessToken") ?? "nil"
             let savedRefresh = KeychainHelper.shared.read(forKey: "refreshToken") ?? "nil"
@@ -53,7 +59,12 @@ class LoginViewModel: ObservableObject {
     }
     
     func checkSavedToken() {
-        isLoggedIn = false
-        print("[LoginViewModel] 자동 로그인 비활성화됨 → 항상 로그인 필요")
+        if let accessToken = KeychainHelper.shared.read(forKey: "accessToken"), !accessToken.isEmpty {
+            print("[LoginViewModel] 자동 로그인 성공")
+            isLoggedIn = true
+        } else {
+            print("[LoginViewModel] 저장된 토큰 없음")
+            isLoggedIn = false
+        }
     }
 }

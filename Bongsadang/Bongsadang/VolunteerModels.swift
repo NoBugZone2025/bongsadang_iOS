@@ -64,6 +64,12 @@ struct UserInfo: Codable {
     }
 }
 
+struct Participant: Codable {
+    let userId: Int
+    let userName: String
+    let userEmail: String
+}
+
 struct VolunteerData: Codable, Identifiable, Equatable {
     let id: Int
     let organizerId: Int
@@ -81,6 +87,8 @@ struct VolunteerData: Codable, Identifiable, Equatable {
     let status: String
     let createdAt: String
     let updatedAt: String
+    let participants: [Participant]?
+    let verified: Bool?
     
     static func == (lhs: VolunteerData, rhs: VolunteerData) -> Bool {
         lhs.id == rhs.id

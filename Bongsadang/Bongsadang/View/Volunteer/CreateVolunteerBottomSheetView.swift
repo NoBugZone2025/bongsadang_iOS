@@ -287,7 +287,7 @@ struct CreateVolunteerBottomSheetView: View {
             endDateTime: endDateTime.toISO8601String(),
             maxParticipants: maxParticipants,
             visibilityType: isPublicRecruitment ? "PUBLIC" : "PRIVATE",
-            volunteerType: "GENERAL"
+            volunteerType: "OTHER"
         )
 
         Task {

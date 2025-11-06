@@ -1,10 +1,3 @@
-//
-//  SignupView.swift
-//  Bongsadang
-//
-//  Created by 박정우 on 11/6/25.
-//
-
 import SwiftUI
 
 struct SignupView: View {
@@ -12,7 +5,13 @@ struct SignupView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ScrollView {
+        ZStack {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
+            ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 TextField("이메일", text: $vm.email)
                     .textInputAutocapitalization(.none)
@@ -61,6 +60,7 @@ struct SignupView: View {
 
             }
             .padding()
+            }
         }
         .navigationTitle("회원가입")
         .onChange(of: vm.isSignupSuccess) { success in

@@ -1,10 +1,3 @@
-//
-//  SignupViewModel.swift
-//  Bongsadang
-//
-//  Created by 박정우 on 11/6/25.
-//
-
 import Foundation
 import Combine
 
