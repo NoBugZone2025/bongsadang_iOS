@@ -9,7 +9,8 @@ struct CreateVolunteerBottomSheetView: View {
 
     @Binding var showCreateVolunteerModal: Bool
     @State private var createTitle: String = ""
-    @State private var createLocation: String = ""
+    @State private var selectedLocation: CLLocationCoordinate2D?
+    @State private var showLocationPicker: Bool = false
     @State private var createStartTime: String = ""
     @State private var createEndTime: String = ""
     @State private var createParticipants: String = ""
@@ -44,31 +45,50 @@ struct CreateVolunteerBottomSheetView: View {
 
                         Spacer()
 
-                        HStack(spacing: 4) {
-                            Image(systemName: "location.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(Color(hex: "A1A1A1"))
-                            Text("현위치")
-                                .font(.system(size: 10))
-                                .foregroundColor(Color(hex: "A1A1A1"))
+                        if selectedLocation == nil {
+                            HStack(spacing: 4) {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(Color(hex: "A1A1A1"))
+                                Text("현위치")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(Color(hex: "A1A1A1"))
+                            }
                         }
                     }
                     .padding(.horizontal, 19)
 
-                    TextField("", text: $createLocation)
-                        .placeholder(when: createLocation.isEmpty, placeholder: {
-                            Text("서울특별시 종로구 XXX")
-                                .font(.system(size: 10))
-                                .foregroundColor(Color(hex: "A1A1A1"))
-                        })
-                        .font(.system(size: 10))
-                        .foregroundColor(.black)
+                    Button(action: {
+                        showLocationPicker = true
+                    }) {
+                        HStack {
+                            if let location = selectedLocation {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("선택된 위치")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(Color(hex: "8B4513"))
+                                    Text("위도: \(String(format: "%.6f", location.latitude)), 경도: \(String(format: "%.6f", location.longitude))")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(Color(hex: "A1A1A1"))
+                                }
+                            } else {
+                                Text("위치 선택하기")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(Color(hex: "A1A1A1"))
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "map.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(hex: "F6AD55"))
+                        }
                         .padding(.horizontal, 16)
-                        .frame(height: 37)
+                        .frame(height: 50)
                         .background(Color.white)
                         .cornerRadius(16)
                         .padding(.horizontal, 14)
-                        .focused($isTextFieldFocused)
+                    }
                 }
                 .padding(.vertical, 15)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -222,6 +242,12 @@ struct CreateVolunteerBottomSheetView: View {
                 .fill(Color.white)
                 .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
         )
+        .sheet(isPresented: $showLocationPicker) {
+            LocationPickerView(
+                selectedLocation: $selectedLocation,
+                initialLocation: locationManager.userLocation?.coordinate
+            )
+        }
     }
 
     private func submitVolunteerCreation() {
@@ -273,16 +299,23 @@ struct CreateVolunteerBottomSheetView: View {
             return
         }
 
-        guard let userLocation = locationManager.userLocation else {
-            networkService.errorMessage = "위치 정보를 가져올 수 없습니다."
-            return
+        // 선택된 위치가 있으면 그 값을 사용하고, 없으면 현재 위치 사용
+        let finalLocation: CLLocationCoordinate2D
+        if let selected = selectedLocation {
+            finalLocation = selected
+        } else {
+            guard let userLocation = locationManager.userLocation else {
+                networkService.errorMessage = "위치 정보를 가져올 수 없습니다."
+                return
+            }
+            finalLocation = userLocation.coordinate
         }
 
         let request = CreateVolunteerRequest(
             title: createTitle,
             description: createContent,
-            latitude: userLocation.coordinate.latitude,
-            longitude: userLocation.coordinate.longitude,
+            latitude: finalLocation.latitude,
+            longitude: finalLocation.longitude,
             startDateTime: startDateTime.toISO8601String(),
             endDateTime: endDateTime.toISO8601String(),
             maxParticipants: maxParticipants,
@@ -298,7 +331,7 @@ struct CreateVolunteerBottomSheetView: View {
                     withAnimation {
                         showCreateVolunteerModal = false
                         createTitle = ""
-                        createLocation = ""
+                        selectedLocation = nil
                         createStartTime = ""
                         createEndTime = ""
                         createParticipants = ""
