@@ -9,12 +9,29 @@ struct SearchResultsListView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 10) {
-                ForEach(volunteers) { volunteer in
-                    SearchResultCard(volunteer: volunteer)
-                        .onTapGesture {
-                            isSearchFocused = false
-                            onSelectVolunteer(volunteer)
+                ForEach(Array(volunteers.enumerated()), id: \.element.id) { index, volunteer in
+                    VStack(spacing: 0) {
+                        SearchResultCard(volunteer: volunteer)
+                            .onTapGesture {
+                                isSearchFocused = false
+                                onSelectVolunteer(volunteer)
+                            }
+
+                        // 첫 번째 카드에만 AI 추천 메시지 표시
+                        if index == 0 {
+                            HStack {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(Color(hex: "A1A1A1"))
+                                Text("AI가 사용자의 취향을 바탕으로 제안하는 봉사활동이에요!")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(Color(hex: "A1A1A1"))
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.top, 6)
+                            .padding(.bottom, 4)
                         }
+                    }
                 }
             }
             .padding(.vertical, 5)
