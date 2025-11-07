@@ -19,7 +19,7 @@ struct SearchBarView: View {
                 }
                 TextField("", text: $searchText)
                     .font(.system(size: 14))
-                    .foregroundColor(.primary)
+                    .foregroundColor(Color(hex: "333333"))
                     .focused($isSearchFocused)
                     .submitLabel(.search)
                     .onSubmit {

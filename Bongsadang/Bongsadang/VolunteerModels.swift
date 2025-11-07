@@ -185,7 +185,7 @@ struct RankingUser: Codable, Identifiable {
 extension Date {
     func toISO8601String() -> String {
         let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds, .withTimeZone]
         // 한국 시간대 사용 (KST: UTC+9)
         formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
         return formatter.string(from: self)

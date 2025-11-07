@@ -11,10 +11,7 @@ enum NetworkError: Error {
 
 class VolunteerNetworkService: ObservableObject {
     static let shared = VolunteerNetworkService()
-    
-    private let baseURL = "https://mouse-loud-muscle-advanced.trycloudflare.com"
-    private let accessToken = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyIiwiZW1haWwiOiJhc2RmIiwicm9sZSI6IlVTRVIiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzYyNDAzOTA2LCJleHAiOjM3NzYyNDAzOTA2fQ.VmZqX_n5kNOHyXKSXTN1rlDDR6ct7fxOgzTDj2Ku8FnuhVtuvTq-5cBlVf9Fju7y-ggkmgOlnlW_egCm0qPhLQ"
-    
+
     @Published var volunteers: [VolunteerData] = []
     @Published var rankings: [RankingUser] = []
     @Published var userInfo: UserInfo?
@@ -22,8 +19,13 @@ class VolunteerNetworkService: ObservableObject {
     @Published var myVolunteers: [VolunteerData] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
-    
+
     private init() {}
+
+    // MARK: - Helper Methods
+    private func getAccessToken() -> String? {
+        return KeychainHelper.shared.read(forKey: "accessToken")
+    }
     
     // MARK: - Network Logging
     private func logRequest(_ request: URLRequest) {
@@ -95,10 +97,14 @@ class VolunteerNetworkService: ObservableObject {
     
     // MARK: - Fetch User Info
     func fetchUserInfo() async throws -> UserInfo {
-        guard let url = URL(string: "\(baseURL)/users/me") else {
+        guard let url = URL(string: "\(APIConfig.baseURL)/users/me") else {
             throw NetworkError.invalidURL
         }
-        
+
+        guard let accessToken = getAccessToken() else {
+            throw NetworkError.unauthorized
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -174,10 +180,14 @@ class VolunteerNetworkService: ObservableObject {
     
     // MARK: - Fetch Rankings
     func fetchRankings() async throws -> [RankingUser] {
-        guard let url = URL(string: "\(baseURL)/ranking") else {
+        guard let url = URL(string: "\(APIConfig.baseURL)/ranking") else {
             throw NetworkError.invalidURL
         }
-        
+
+        guard let accessToken = getAccessToken() else {
+            throw NetworkError.unauthorized
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -253,10 +263,14 @@ class VolunteerNetworkService: ObservableObject {
     
     // MARK: - Participate in Volunteer
     func participateInVolunteer(volunteerId: Int) async throws -> VolunteerData {
-        guard let url = URL(string: "\(baseURL)/volunteers/\(volunteerId)/participate") else {
+        guard let url = URL(string: "\(APIConfig.baseURL)/volunteers/\(volunteerId)/participate") else {
             throw NetworkError.invalidURL
         }
-        
+
+        guard let accessToken = getAccessToken() else {
+            throw NetworkError.unauthorized
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -328,10 +342,14 @@ class VolunteerNetworkService: ObservableObject {
     
     // MARK: - Fetch Nearby Volunteers
     func fetchNearbyVolunteers(latitude: Double, longitude: Double, radiusKm: Double = 10.0) async throws -> [VolunteerData] {
-        guard let url = URL(string: "\(baseURL)/volunteers/nearby") else {
+        guard let url = URL(string: "\(APIConfig.baseURL)/volunteers/nearby") else {
             throw NetworkError.invalidURL
         }
-        
+
+        guard let accessToken = getAccessToken() else {
+            throw NetworkError.unauthorized
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -416,10 +434,14 @@ class VolunteerNetworkService: ObservableObject {
     
     // MARK: - Fetch Completed Volunteers
     func fetchCompletedVolunteers() async throws -> [VolunteerData] {
-        guard let url = URL(string: "\(baseURL)/volunteers/completed") else {
+        guard let url = URL(string: "\(APIConfig.baseURL)/volunteers/completed") else {
             throw NetworkError.invalidURL
         }
-        
+
+        guard let accessToken = getAccessToken() else {
+            throw NetworkError.unauthorized
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -492,10 +514,14 @@ class VolunteerNetworkService: ObservableObject {
 
     // MARK: - Fetch My Volunteers
     func fetchMyVolunteers() async throws -> [VolunteerData] {
-        guard let url = URL(string: "\(baseURL)/volunteers/my") else {
+        guard let url = URL(string: "\(APIConfig.baseURL)/volunteers/my") else {
             throw NetworkError.invalidURL
         }
-        
+
+        guard let accessToken = getAccessToken() else {
+            throw NetworkError.unauthorized
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -568,10 +594,14 @@ class VolunteerNetworkService: ObservableObject {
 
     // MARK: - Create Volunteer
     func createVolunteer(request: CreateVolunteerRequest) async throws -> VolunteerData {
-        guard let url = URL(string: "\(baseURL)/volunteers") else {
+        guard let url = URL(string: "\(APIConfig.baseURL)/volunteers") else {
             throw NetworkError.invalidURL
         }
-        
+
+        guard let accessToken = getAccessToken() else {
+            throw NetworkError.unauthorized
+        }
+
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -625,6 +655,61 @@ class VolunteerNetworkService: ObservableObject {
         }
     }
     
+    // MARK: - Fetch Participating Volunteer
+    func fetchParticipatingVolunteer() async throws -> VolunteerData? {
+        guard let url = URL(string: "\(APIConfig.baseURL)/volunteers/participating") else {
+            throw NetworkError.invalidURL
+        }
+
+        guard let accessToken = getAccessToken() else {
+            throw NetworkError.unauthorized
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        logRequest(request)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        logResponse(response, data: data, error: nil)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            if httpResponse.statusCode == 404 {
+                // 참여 중인 봉사활동이 없음
+                return nil
+            }
+            throw NetworkError.serverError("Status code: \(httpResponse.statusCode)")
+        }
+
+        let apiResponse = try JSONDecoder().decode(APIResponse<VolunteerData>.self, from: data)
+        return apiResponse.data
+    }
+
+    @MainActor
+    func loadParticipatingVolunteer() async {
+        do {
+            if let participating = try await fetchParticipatingVolunteer() {
+                print("✅ Found participating volunteer: \(participating.title)")
+                print("   Verified: \(participating.verified ?? false)")
+                // verified가 true인 경우만 진행 중으로 처리
+                if participating.verified == true {
+                    // TODO: 타이머 시작 및 UI 업데이트는 ContentView에서 처리
+                }
+            } else {
+                print("ℹ️ No participating volunteer found")
+            }
+        } catch {
+            print("🔴 Failed to load participating volunteer: \(error)")
+        }
+    }
+
     @MainActor
     func createAndLoadVolunteer(request: CreateVolunteerRequest) async -> Bool {
         isLoading = true
