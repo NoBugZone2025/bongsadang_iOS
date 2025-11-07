@@ -28,6 +28,7 @@ struct VolunteerDetailView: View {
 
     @State private var showRecenterButton: Bool = false
     @State private var isMapDragging: Bool = false
+    @State private var isVerificationReady: Bool = false
 
     // 검색 결과
     var filteredVolunteers: [VolunteerData] {
@@ -40,21 +41,34 @@ struct VolunteerDetailView: View {
             volunteer.organizerName.localizedCaseInsensitiveContains(searchText)
         }
     }
-    
-    let startTime: Date = Date()
-    
-    let endTime: Date = {
-        return Date().addingTimeInterval(5)
-    }()
-    
+
+    // 봉사활동 시작/종료 시간
+    var volunteerStartTime: Date? {
+        guard let volunteer = currentParticipatingVolunteer,
+              let date = parseDateTime(volunteer.startDateTime) else {
+            return nil
+        }
+        return date
+    }
+
+    var volunteerEndTime: Date? {
+        guard let volunteer = currentParticipatingVolunteer,
+              let date = parseDateTime(volunteer.endDateTime) else {
+            return nil
+        }
+        return date
+    }
+
     var totalDuration: TimeInterval {
-        5
+        // 해커톤용 5초 타이머
+        return 5
     }
-    
+
     var progress: Double {
-        min(elapsedTime / totalDuration, 1.0)
+        guard totalDuration > 0 else { return 0 }
+        return min(elapsedTime / totalDuration, 1.0)
     }
-    
+
     var formattedTime: String {
         let hours = Int(elapsedTime) / 3600
         let minutes = (Int(elapsedTime) % 3600) / 60
@@ -89,12 +103,18 @@ struct VolunteerDetailView: View {
                 }
 
                 if isParticipating {
-                    ActiveVolunteerCardView(currentParticipatingVolunteer: $currentParticipatingVolunteer, elapsedTime: $elapsedTime, totalDuration: totalDuration, showImagePicker: $showImagePicker)
-                        .padding(.horizontal, 10)
-                        .padding(.top, 13)
-                        .onTapGesture {
-                            isSearchFocused = false
-                        }
+                    ActiveVolunteerCardView(
+                        currentParticipatingVolunteer: $currentParticipatingVolunteer,
+                        elapsedTime: $elapsedTime,
+                        totalDuration: totalDuration,
+                        showImagePicker: $showImagePicker,
+                        isVerificationReady: isVerificationReady
+                    )
+                    .padding(.horizontal, 10)
+                    .padding(.top, 13)
+                    .onTapGesture {
+                        isSearchFocused = false
+                    }
                 }
 
                 Spacer()
@@ -392,10 +412,14 @@ struct VolunteerDetailView: View {
     
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            // 해커톤용 간단한 타이머 (5초)
             if elapsedTime < totalDuration {
                 elapsedTime += 1
             } else {
+                elapsedTime = totalDuration
+                isVerificationReady = true
                 stopTimer()
+                print("✅ Volunteer activity completed! Verification ready.")
             }
         }
     }
@@ -416,6 +440,9 @@ struct VolunteerDetailView: View {
                     currentParticipatingVolunteer = volunteer
                     isParticipating = true
                     selectedLocation = nil
+                    isVerificationReady = false
+                    elapsedTime = 0  // 해커톤용 0부터 시작
+
                     startTimer()
                 }
             }
@@ -431,11 +458,8 @@ struct VolunteerDetailView: View {
                         await MainActor.run {
                             currentParticipatingVolunteer = participating
                             isParticipating = true
-
-                            // 시작 시간부터 현재까지의 경과 시간 계산
-                            if let startDate = parseDateTime(participating.startDateTime) {
-                                elapsedTime = Date().timeIntervalSince(startDate)
-                            }
+                            isVerificationReady = false
+                            elapsedTime = 0  // 해커톤용 항상 0부터 시작
 
                             startTimer()
                             print("✅ Resumed participating volunteer: \(participating.title)")

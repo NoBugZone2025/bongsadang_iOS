@@ -8,5 +8,5 @@
 import Foundation
 
 enum APIConfig {
-    static let baseURL = "https://slowly-fountain-vampire-bolt.trycloudflare.com"
+    static let baseURL = "https://dublin-map-trunk-committed.trycloudflare.com"
 }

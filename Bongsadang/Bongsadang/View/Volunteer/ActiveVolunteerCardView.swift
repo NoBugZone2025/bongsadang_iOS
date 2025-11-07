@@ -6,9 +6,11 @@ struct ActiveVolunteerCardView: View {
     @Binding var elapsedTime: TimeInterval
     let totalDuration: TimeInterval
     @Binding var showImagePicker: Bool
+    let isVerificationReady: Bool
 
     var progress: Double {
-        min(elapsedTime / totalDuration, 1.0)
+        guard totalDuration > 0 else { return 0 }
+        return min(elapsedTime / totalDuration, 1.0)
     }
 
     var formattedTime: String {
@@ -79,27 +81,33 @@ struct ActiveVolunteerCardView: View {
                         .frame(height: 2)
                     }
 
-                    if elapsedTime >= totalDuration {
+                    if isVerificationReady {
                         HStack {
                             Spacer()
                             Button(action: {
                                 showImagePicker = true
                             }) {
-                                Text("인증하기")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .frame(width: 70, height: 33.14)
-                                    .background(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
+                                HStack(spacing: 6) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 14))
+                                    Text("인증하기")
+                                        .font(.system(size: 14, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 10)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
                                     )
-                                    .cornerRadius(16.57)
+                                )
+                                .cornerRadius(20)
+                                .shadow(color: Color(hex: "D2691E").opacity(0.3), radius: 8, x: 0, y: 4)
                             }
                         }
-                        .padding(.top, 4)
+                        .padding(.top, 8)
                     }
                 }
                 .padding(.vertical, 15)
