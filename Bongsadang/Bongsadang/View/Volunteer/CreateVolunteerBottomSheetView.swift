@@ -11,8 +11,8 @@ struct CreateVolunteerBottomSheetView: View {
     @State private var createTitle: String = ""
     @State private var selectedLocation: CLLocationCoordinate2D?
     @State private var showLocationPicker: Bool = false
-    @State private var createStartTime: String = ""
-    @State private var createEndTime: String = ""
+    @State private var startDate: Date = Date()
+    @State private var endDate: Date = Date().addingTimeInterval(3600) // 1시간 후
     @State private var createParticipants: String = ""
     @State private var createContent: String = ""
     @State private var isPublicRecruitment: Bool = false
@@ -102,34 +102,44 @@ struct CreateVolunteerBottomSheetView: View {
                         .foregroundColor(Color(hex: "8B4513"))
                         .padding(.horizontal, 19)
 
-                    HStack(spacing: 19) {
-                        TextField("", text: $createStartTime)
-                            .placeholder(when: createStartTime.isEmpty, placeholder: {
-                                Text("시작 시간 (14:00)")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(Color(hex: "A1A1A1"))
-                            })
-                            .font(.system(size: 10))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 16)
-                            .frame(height: 37)
-                            .background(Color.white)
-                            .cornerRadius(16)
-                            .focused($isTextFieldFocused)
+                    VStack(spacing: 10) {
+                        // 시작 시간
+                        HStack {
+                            Text("시작")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(Color(hex: "8B4513"))
+                                .frame(width: 35)
 
-                        TextField("", text: $createEndTime)
-                            .placeholder(when: createEndTime.isEmpty, placeholder: {
-                                Text("종료 시간 (16:00)")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(Color(hex: "A1A1A1"))
-                            })
-                            .font(.system(size: 10))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 16)
-                            .frame(height: 37)
-                            .background(Color.white)
-                            .cornerRadius(16)
-                            .focused($isTextFieldFocused)
+                            DatePicker("", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
+                                .datePickerStyle(.compact)
+                                .labelsHidden()
+                                .font(.system(size: 10))
+                                .accentColor(Color(hex: "F6AD55"))
+                                .environment(\.locale, Locale(identifier: "ko_KR"))
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(height: 37)
+                        .background(Color.white)
+                        .cornerRadius(16)
+
+                        // 종료 시간
+                        HStack {
+                            Text("종료")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(Color(hex: "8B4513"))
+                                .frame(width: 35)
+
+                            DatePicker("", selection: $endDate, in: startDate..., displayedComponents: [.date, .hourAndMinute])
+                                .datePickerStyle(.compact)
+                                .labelsHidden()
+                                .font(.system(size: 10))
+                                .accentColor(Color(hex: "F6AD55"))
+                                .environment(\.locale, Locale(identifier: "ko_KR"))
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(height: 37)
+                        .background(Color.white)
+                        .cornerRadius(16)
                     }
                     .padding(.horizontal, 10)
 
@@ -172,6 +182,7 @@ struct CreateVolunteerBottomSheetView: View {
 
                         TextEditor(text: $createContent)
                             .font(.system(size: 10))
+                            .foregroundColor(.black)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .frame(height: 106)
@@ -266,36 +277,9 @@ struct CreateVolunteerBottomSheetView: View {
             return
         }
 
-        guard !createStartTime.isEmpty, !createEndTime.isEmpty else {
-            networkService.errorMessage = "시작 시간과 종료 시간을 입력해주세요."
-            return
-        }
-
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "HH:mm"
-
-        guard let startTime = dateFormatter.date(from: createStartTime),
-              let endTime = dateFormatter.date(from: createEndTime) else {
-            networkService.errorMessage = "시간 형식이 올바르지 않습니다. (예: 14:00)"
-            return
-        }
-
-        let calendar = Calendar.current
-        let today = Date()
-
-        var startComponents = calendar.dateComponents([.year, .month, .day], from: today)
-        let startTimeComponents = calendar.dateComponents([.hour, .minute], from: startTime)
-        startComponents.hour = startTimeComponents.hour
-        startComponents.minute = startTimeComponents.minute
-
-        var endComponents = calendar.dateComponents([.year, .month, .day], from: today)
-        let endTimeComponents = calendar.dateComponents([.hour, .minute], from: endTime)
-        endComponents.hour = endTimeComponents.hour
-        endComponents.minute = endTimeComponents.minute
-
-        guard let startDateTime = calendar.date(from: startComponents),
-              let endDateTime = calendar.date(from: endComponents) else {
-            networkService.errorMessage = "날짜 생성 중 오류가 발생했습니다."
+        // DatePicker에서 선택된 날짜/시간 사용
+        guard startDate < endDate else {
+            networkService.errorMessage = "종료 시간은 시작 시간 이후여야 합니다."
             return
         }
 
@@ -316,8 +300,8 @@ struct CreateVolunteerBottomSheetView: View {
             description: createContent,
             latitude: finalLocation.latitude,
             longitude: finalLocation.longitude,
-            startDateTime: startDateTime.toISO8601String(),
-            endDateTime: endDateTime.toISO8601String(),
+            startDateTime: startDate.toISO8601String(),
+            endDateTime: endDate.toISO8601String(),
             maxParticipants: maxParticipants,
             visibilityType: isPublicRecruitment ? "PUBLIC" : "PRIVATE",
             volunteerType: "OTHER"
@@ -332,8 +316,8 @@ struct CreateVolunteerBottomSheetView: View {
                         showCreateVolunteerModal = false
                         createTitle = ""
                         selectedLocation = nil
-                        createStartTime = ""
-                        createEndTime = ""
+                        startDate = Date()
+                        endDate = Date().addingTimeInterval(3600)
                         createParticipants = ""
                         createContent = ""
                         isPublicRecruitment = false

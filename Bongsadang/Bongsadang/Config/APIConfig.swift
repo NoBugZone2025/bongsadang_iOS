@@ -1,10 +1,3 @@
-//
-//  APIConfig.swift
-//  Bongsadang
-//
-//  Created by Claude
-//
-
 import Foundation
 
 enum APIConfig {
