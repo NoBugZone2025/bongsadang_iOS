@@ -12,23 +12,45 @@ struct BottomTabBarView: View {
                     showMyPageModal = false
                 }
             } label: {
-                Image("home")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-                    .opacity((!showRankingModal && !showMyPageModal) ? 1.0 : 0.5)
-                    .frame(maxWidth: .infinity)
+                VStack(spacing: 4) {
+                    Image("home")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+
+                    if !showRankingModal && !showMyPageModal {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: 6, height: 6)
+                    } else {
+                        Circle()
+                            .fill(Color.clear)
+                            .frame(width: 6, height: 6)
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
 
             Button {
-            
+
             } label: {
-                Image("shop")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-                    .opacity(0.5)
-                    .frame(maxWidth: .infinity)
+                VStack(spacing: 4) {
+                    Image("shop")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+
+                    Circle()
+                        .fill(Color.clear)
+                        .frame(width: 6, height: 6)
+                }
+                .frame(maxWidth: .infinity)
             }
 
             Spacer()
@@ -40,12 +62,29 @@ struct BottomTabBarView: View {
                     showRankingModal.toggle()
                 }
             } label: {
-                Image("rank")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-                    .opacity(showRankingModal ? 1.0 : 0.5)
-                    .frame(maxWidth: .infinity)
+                VStack(spacing: 4) {
+                    Image("rank")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+
+                    if showRankingModal {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: 6, height: 6)
+                    } else {
+                        Circle()
+                            .fill(Color.clear)
+                            .frame(width: 6, height: 6)
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
 
             Button {
@@ -54,12 +93,29 @@ struct BottomTabBarView: View {
                     showMyPageModal.toggle()
                 }
             } label: {
-                Image("my")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-                    .opacity(showMyPageModal ? 1.0 : 0.5)
-                    .frame(maxWidth: .infinity)
+                VStack(spacing: 4) {
+                    Image("my")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+
+                    if showMyPageModal {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [Color(hex: "D2691E"), Color(hex: "F6AD55")]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: 6, height: 6)
+                    } else {
+                        Circle()
+                            .fill(Color.clear)
+                            .frame(width: 6, height: 6)
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
         }
         .frame(height: 84)

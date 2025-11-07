@@ -96,7 +96,8 @@ struct VolunteerDetailView: View {
                         volunteers: filteredVolunteers,
                         onSelectVolunteer: { volunteer in
                             selectVolunteerFromSearch(volunteer)
-                        }
+                        },
+                        isSearchFocused: $isSearchFocused
                     )
                     .padding(.horizontal, 10)
                     .padding(.top, 9)

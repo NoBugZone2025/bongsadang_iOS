@@ -4,6 +4,7 @@ import SwiftUI
 struct SearchResultsListView: View {
     let volunteers: [VolunteerData]
     let onSelectVolunteer: (VolunteerData) -> Void
+    @FocusState.Binding var isSearchFocused: Bool
 
     var body: some View {
         ScrollView {
@@ -11,6 +12,7 @@ struct SearchResultsListView: View {
                 ForEach(volunteers) { volunteer in
                     SearchResultCard(volunteer: volunteer)
                         .onTapGesture {
+                            isSearchFocused = false
                             onSelectVolunteer(volunteer)
                         }
                 }
@@ -23,6 +25,9 @@ struct SearchResultsListView: View {
                 .fill(Color.white)
                 .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
         )
+        .onTapGesture {
+            isSearchFocused = false
+        }
     }
 }
 
